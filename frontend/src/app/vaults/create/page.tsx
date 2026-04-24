@@ -46,8 +46,66 @@ export default function CreateVaultPage() {
     setHeirs(updated);
   };
 
+  const validateForm = (): string | null => {
+    const days = Number(inactivityDays);
+    if (days < 30 || days > 730) {
+      return "Período de inatividade deve estar entre 30 dias e 730 dias (2 anos)";
+    }
+    const fee = Number(keeperFeeBps);
+    if (fee < 0 || fee > 100) {
+      return "Taxa do keeper deve estar entre 0 e 100 basis points (1%)";
+    }
+    const gas = Number(gasReserve);
+    if (gas < 0.01) {
+      return "Reserva de gas mínima é 0.01 SOL";
+    }
+    if (heirs.length === 0) {
+      return "Adicione pelo menos um herdeiro";
+    }
+    if (heirs.length > 10) {
+      return "Máximo de 10 herdeiros";
+    }
+    
+    // Verificar duplicatas de wallet
+    const wallets = heirs.map(h => h.wallet);
+    if (new Set(wallets).size !== wallets.length) {
+      return "Herdeiros não podem ter endereços duplicados";
+    }
+    
+    // Verificar carteiras vazias
+    if (heirs.some(h => !h.wallet.trim())) {
+      return "Todos os herdeiros devem ter um endereço de carteira";
+    }
+    
+    // Validar soma de percentuais por asset = 10000 bps (100%)
+    const percentageByAsset: Record<string, number> = {};
+    for (const heir of heirs) {
+      if (heir.allocationType === "percentage") {
+        const val = Number(heir.allocationValue);
+        if (isNaN(val) || val <= 0) {
+          return `Herdeiro ${heirs.indexOf(heir) + 1} tem alocação percentual inválida`;
+        }
+        percentageByAsset[heir.asset] = (percentageByAsset[heir.asset] || 0) + val;
+      }
+    }
+    for (const [asset, sum] of Object.entries(percentageByAsset)) {
+      if (sum !== 10000) {
+        return `Asset ${asset.slice(0, 8)}...: soma dos percentuais deve ser exatamente 10000 bps (100%). Atual: ${sum}`;
+      }
+    }
+    
+    return null;
+  };
+
   const handleSubmit = async () => {
     setError("");
+    
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    
     setLoading(true);
 
     try {
