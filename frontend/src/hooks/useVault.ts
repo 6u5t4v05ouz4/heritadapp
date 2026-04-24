@@ -45,7 +45,7 @@ export function useVault() {
   const initializeVault = useCallback(
     async (
       seed: number,
-      inactivityPeriodDays: number,
+      inactivityPeriodMinutes: number,
       heirs: HeirInput[],
       keeperFeeBps: number = 100,
       gasReserveSol: number = 0.01
@@ -56,7 +56,7 @@ export function useVault() {
       if (!vaultPDA) throw new Error("Failed to derive vault PDA");
 
       const inactivityPeriodSeconds = Math.floor(
-        inactivityPeriodDays * 24 * 60 * 60
+        inactivityPeriodMinutes * 60
       );
       const gasReserveLamports = Math.floor(gasReserveSol * LAMPORTS_PER_SOL);
 

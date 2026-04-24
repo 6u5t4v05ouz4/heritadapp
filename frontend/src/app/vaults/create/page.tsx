@@ -22,7 +22,7 @@ export default function CreateVaultPage() {
 
   const [step, setStep] = useState(1);
   const [seed, setSeed] = useState(Date.now().toString());
-  const [inactivityDays, setInactivityDays] = useState("90");
+  const [inactivityMinutes, setInactivityMinutes] = useState("60");
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");
   const [heirs, setHeirs] = useState<HeirInput[]>([
@@ -47,9 +47,9 @@ export default function CreateVaultPage() {
   };
 
   const validateForm = (): string | null => {
-    const days = Number(inactivityDays);
-    if (days < 30 || days > 730) {
-      return "Período de inatividade deve estar entre 30 dias e 730 dias (2 anos)";
+    const minutes = Number(inactivityMinutes);
+    if (minutes < 1 || minutes > 525600) {
+      return "Período de inatividade deve estar entre 1 minuto e 525.600 minutos (1 ano)";
     }
     const fee = Number(keeperFeeBps);
     if (fee < 0 || fee > 100) {
@@ -121,7 +121,7 @@ export default function CreateVaultPage() {
 
       const { tx, vaultPDA } = await initializeVault(
         Number(seed),
-        Number(inactivityDays),
+        Number(inactivityMinutes),
         parsedHeirs,
         Number(keeperFeeBps),
         Number(gasReserve)
@@ -209,18 +209,18 @@ export default function CreateVaultPage() {
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Período de Inatividade (dias)
+                Período de Inatividade (minutos)
               </label>
               <input
                 type="number"
-                min="30"
-                max="730"
-                value={inactivityDays}
-                onChange={(e) => setInactivityDays(e.target.value)}
+                min="1"
+                max="525600"
+                value={inactivityMinutes}
+                onChange={(e) => setInactivityMinutes(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
               />
               <p className="text-xs text-zinc-500 mt-1">
-                Mínimo: 30 dias | Máximo: 730 dias (2 anos)
+                Mínimo: 1 minuto | Máximo: 525.600 minutos (1 ano)
               </p>
             </div>
 
@@ -376,7 +376,7 @@ export default function CreateVaultPage() {
               </div>
               <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
                 <span className="text-zinc-500">Inatividade</span>
-                <span className="text-black dark:text-white">{inactivityDays} dias</span>
+                <span className="text-black dark:text-white">{inactivityMinutes} minutos</span>
               </div>
               <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
                 <span className="text-zinc-500">Taxa Keeper</span>
