@@ -78,7 +78,7 @@ export function useVault() {
           vault: vaultPDA,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return { tx, vaultPDA };
     },
@@ -98,7 +98,7 @@ export function useVault() {
           vault: vaultPDA,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
     },
@@ -122,7 +122,7 @@ export function useVault() {
           vaultAta,
           tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
     },
@@ -140,7 +140,7 @@ export function useVault() {
           vault: vaultPDA,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
     },
@@ -158,7 +158,7 @@ export function useVault() {
           vault: vaultPDA,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
     },
@@ -184,7 +184,7 @@ export function useVault() {
           rent: SystemProgram.programId,
         })
         .remainingAccounts(remainingAccounts)
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
     },
