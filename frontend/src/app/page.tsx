@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
@@ -34,30 +35,34 @@ export default function Home() {
 
         {connected && (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-              <h2 className="text-xl font-semibold mb-2 dark:text-white">
-                Criar Vault
-              </h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Configure um novo cofre de herança com seus herdeiros e período
-                de inatividade.
-              </p>
-              <button className="w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity">
-                Novo Vault
-              </button>
-            </div>
+            <Link href="/vaults/create" className="block">
+              <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                <h2 className="text-xl font-semibold mb-2 dark:text-white">
+                  Criar Vault
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                  Configure um novo cofre de herança com seus herdeiros e período
+                  de inatividade.
+                </p>
+                <span className="inline-block w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium text-center hover:opacity-90 transition-opacity">
+                  Novo Vault →
+                </span>
+              </div>
+            </Link>
 
-            <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-              <h2 className="text-xl font-semibold mb-2 dark:text-white">
-                Meus Vaults
-              </h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
-                Visualize e gerencie seus cofres ativos.
-              </p>
-              <button className="w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity">
-                Listar Vaults
-              </button>
-            </div>
+            <Link href="/vaults" className="block">
+              <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
+                <h2 className="text-xl font-semibold mb-2 dark:text-white">
+                  Meus Vaults
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                  Visualize e gerencie seus cofres ativos.
+                </p>
+                <span className="inline-block w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium text-center hover:opacity-90 transition-opacity">
+                  Listar Vaults →
+                </span>
+              </div>
+            </Link>
           </div>
         )}
 
