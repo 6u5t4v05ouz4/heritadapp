@@ -15,6 +15,7 @@ export default function VaultDetailPage() {
   const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
 
   const vaultAddress = params.address as string;
+  const [mounted, setMounted] = useState(false);
   const [vault, setVault] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
@@ -23,7 +24,11 @@ export default function VaultDetailPage() {
   const [depositAmount, setDepositAmount] = useState("");
 
   useEffect(() => {
-    if (!vaultAddress) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !vaultAddress) return;
     setLoading(true);
     fetchVault(new PublicKey(vaultAddress))
       .then((data) => {
@@ -31,7 +36,7 @@ export default function VaultDetailPage() {
       })
       .catch(() => setVault(null))
       .finally(() => setLoading(false));
-  }, [vaultAddress, fetchVault]);
+  }, [mounted, vaultAddress, fetchVault]);
 
   const handleDeposit = async () => {
     setError("");
@@ -109,6 +114,18 @@ export default function VaultDetailPage() {
     const minutes = Math.floor((diff % 3600) / 60);
     return `${days}d ${hours}h ${minutes}m`;
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12">
+        <div className="animate-pulse space-y-4 w-full max-w-2xl">
+          <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-1/3"></div>
+          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3"></div>
+          <div className="h-32 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (

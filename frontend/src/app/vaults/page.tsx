@@ -23,11 +23,16 @@ interface VaultData {
 export default function VaultsPage() {
   const { publicKey, connected } = useWallet();
   const { fetchVaultsByOwner } = useVault();
+  const [mounted, setMounted] = useState(false);
   const [vaults, setVaults] = useState<VaultData[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!connected || !publicKey) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || !connected || !publicKey) {
       setVaults([]);
       return;
     }
@@ -60,7 +65,7 @@ export default function VaultsPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {connected && (
+            {mounted && connected && (
               <Link
                 href="/vaults/create"
                 className="py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
@@ -72,16 +77,7 @@ export default function VaultsPage() {
           </div>
         </div>
 
-        {!connected && (
-          <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-              Conecte sua carteira para ver seus vaults
-            </p>
-            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
-          </div>
-        )}
-
-        {connected && loading && (
+        {!mounted && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2].map((i) => (
               <div
@@ -96,7 +92,31 @@ export default function VaultsPage() {
           </div>
         )}
 
-        {connected && !loading && vaults.length === 0 && (
+        {mounted && !connected && (
+          <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+              Conecte sua carteira para ver seus vaults
+            </p>
+            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+          </div>
+        )}
+
+        {mounted && connected && loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 animate-pulse"
+              >
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3"></div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mounted && connected && !loading && vaults.length === 0 && (
           <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center">
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">
               Você ainda não tem nenhum vault
@@ -110,7 +130,7 @@ export default function VaultsPage() {
           </div>
         )}
 
-        {connected && !loading && vaults.length > 0 && (
+        {mounted && connected && !loading && vaults.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {vaults.map((vault) => (
               <Link

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -20,8 +20,9 @@ export default function CreateVaultPage() {
   const { connected } = useWallet();
   const { initializeVault } = useVault();
 
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
-  const [seed, setSeed] = useState(Date.now().toString());
+  const [seed, setSeed] = useState("0");
   const [inactivityMinutes, setInactivityMinutes] = useState("60");
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");
@@ -30,6 +31,11 @@ export default function CreateVaultPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+    setSeed(Date.now().toString());
+  }, []);
 
   const addHeir = () => {
     if (heirs.length >= 10) return;
@@ -134,6 +140,18 @@ export default function CreateVaultPage() {
       setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
+        <div className="animate-pulse space-y-4 w-full max-w-md">
+          <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3 mx-auto"></div>
+          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4 mx-auto"></div>
+          <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (
