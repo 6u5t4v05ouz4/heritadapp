@@ -1,0 +1,1371 @@
+{
+  "address": "8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX",
+  "metadata": {
+    "name": "crypto_heranca",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Crypto-Herança — Dead Man's Switch para herança de ativos na Solana"
+  },
+  "instructions": [
+    {
+      "name": "cancel_vault",
+      "discriminator": [
+        150,
+        95,
+        141,
+        252,
+        158,
+        53,
+        60,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "heir_0",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_1",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_2",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_3",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_4",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_5",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_6",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_7",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_8",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "heir_9",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "deposit_sol",
+      "discriminator": [
+        108,
+        81,
+        78,
+        117,
+        125,
+        155,
+        56,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_token",
+      "discriminator": [
+        11,
+        156,
+        96,
+        218,
+        39,
+        163,
+        180,
+        19
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "owner_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "heartbeat",
+      "discriminator": [
+        202,
+        104,
+        56,
+        6,
+        240,
+        170,
+        63,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proof",
+          "type": {
+            "option": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_token_account",
+      "discriminator": [
+        150,
+        85,
+        44,
+        28,
+        149,
+        14,
+        210,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_vault",
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "u64"
+        },
+        {
+          "name": "inactivity_period",
+          "type": "i64"
+        },
+        {
+          "name": "heirs",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "Heir"
+              }
+            }
+          }
+        },
+        {
+          "name": "keeper_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "gas_reserve_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.seed",
+                "account": "Vault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_inactivity_period",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "new_heirs",
+          "type": {
+            "option": {
+              "vec": {
+                "defined": {
+                  "name": "Heir"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "new_keeper_fee_bps",
+          "type": {
+            "option": "u16"
+          }
+        },
+        {
+          "name": "new_gas_reserve",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ClaimExecuted",
+      "discriminator": [
+        212,
+        136,
+        197,
+        46,
+        221,
+        19,
+        219,
+        5
+      ]
+    },
+    {
+      "name": "Deposit",
+      "discriminator": [
+        62,
+        205,
+        242,
+        175,
+        244,
+        169,
+        136,
+        52
+      ]
+    },
+    {
+      "name": "HeartbeatReset",
+      "discriminator": [
+        183,
+        35,
+        2,
+        171,
+        125,
+        54,
+        254,
+        128
+      ]
+    },
+    {
+      "name": "VaultCancelled",
+      "discriminator": [
+        137,
+        72,
+        110,
+        157,
+        80,
+        107,
+        59,
+        181
+      ]
+    },
+    {
+      "name": "VaultCreated",
+      "discriminator": [
+        117,
+        25,
+        120,
+        254,
+        75,
+        236,
+        78,
+        115
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "VaultNotActive",
+      "msg": "Vault is not active"
+    },
+    {
+      "code": 6001,
+      "name": "TimerNotExpired",
+      "msg": "Vault timer has not expired yet"
+    },
+    {
+      "code": 6002,
+      "name": "TimerAlreadyExpired",
+      "msg": "Vault timer has already expired"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidInactivityPeriod",
+      "msg": "Invalid inactivity period: must be between 30 days and 2 years"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidGasReserve",
+      "msg": "Invalid gas reserve: minimum is 0.01 SOL"
+    },
+    {
+      "code": 6005,
+      "name": "KeeperFeeTooHigh",
+      "msg": "Keeper fee too high: maximum is 1%"
+    },
+    {
+      "code": 6006,
+      "name": "TooManyHeirs",
+      "msg": "Too many heirs: maximum is 10"
+    },
+    {
+      "code": 6007,
+      "name": "TooManyAssets",
+      "msg": "Too many assets: maximum is 5"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidPercentageSum",
+      "msg": "Percentage allocations must sum to exactly 100% (10000 bps) per asset"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidAssetMint",
+      "msg": "Invalid asset mint address"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidHeartbeatSignature",
+      "msg": "Invalid heartbeat signature"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidHeartbeatTimestamp",
+      "msg": "Heartbeat timestamp is too old or too far in the future"
+    },
+    {
+      "code": 6012,
+      "name": "NoHeirsForAsset",
+      "msg": "No heirs configured for this asset"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientVaultSol",
+      "msg": "Insufficient SOL balance in vault"
+    },
+    {
+      "code": 6014,
+      "name": "AssetNotFound",
+      "msg": "Asset not found in vault"
+    },
+    {
+      "code": 6015,
+      "name": "VaultAlreadyClaimed",
+      "msg": "Vault is already claimed"
+    },
+    {
+      "code": 6016,
+      "name": "Unauthorized",
+      "msg": "Unauthorized: only the owner can perform this action"
+    },
+    {
+      "code": 6017,
+      "name": "DuplicateHeir",
+      "msg": "Duplicate heir wallet detected"
+    },
+    {
+      "code": 6018,
+      "name": "ZeroAllocation",
+      "msg": "Zero allocation value not allowed"
+    },
+    {
+      "code": 6019,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidRemainingAccounts",
+      "msg": "Invalid remaining accounts for claim"
+    },
+    {
+      "code": 6021,
+      "name": "ATACreationFailed",
+      "msg": "ATA creation failed"
+    }
+  ],
+  "types": [
+    {
+      "name": "AllocationType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Percentage"
+          },
+          {
+            "name": "FixedAmount"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "heir",
+            "type": "pubkey"
+          },
+          {
+            "name": "keeper",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Deposit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HeartbeatReset",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "caller",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Heir",
+      "docs": [
+        "============================================================",
+        "Struct: Heir",
+        "Representa um herdeiro com sua alocação",
+        "============================================================"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "docs": [
+              "Endereço do herdeiro"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "docs": [
+              "Mint do token (SOL nativo = System Program ID)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "allocation_type",
+            "docs": [
+              "Tipo de alocação"
+            ],
+            "type": {
+              "defined": {
+                "name": "AllocationType"
+              }
+            }
+          },
+          {
+            "name": "allocation_value",
+            "docs": [
+              "Valor da alocação (percentage em basis points ou fixed amount)"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "docs": [
+        "============================================================",
+        "Account: Vault",
+        "PDA derivado de [b\"vault\", owner.key().as_ref(), seed.to_le_bytes()]",
+        "Armazena configuração de herança e estado do timer",
+        "============================================================"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "Dono do vault (quem criou e pode gerenciar)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "last_heartbeat",
+            "docs": [
+              "Timestamp UNIX do último heartbeat"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "inactivity_period",
+            "docs": [
+              "Período máximo de inatividade em segundos"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "heirs",
+            "docs": [
+              "Lista de herdeiros (máx: 10)"
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "Heir"
+                }
+              }
+            }
+          },
+          {
+            "name": "assets",
+            "docs": [
+              "Lista de assets depositados (máx: 5)"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "keeper_fee_bps",
+            "docs": [
+              "Taxa do keeper em basis points (máx: 100 = 1%)"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "gas_reserve_lamports",
+            "docs": [
+              "Reserva de SOL para reembolso de gas do keeper"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Status do vault"
+            ],
+            "type": {
+              "defined": {
+                "name": "VaultStatus"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Timestamp de criação"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump canônico do PDA"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "seed",
+            "docs": [
+              "Seed usada na derivação (permite múltiplos vaults por owner)"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultCreated",
+      "docs": [
+        "============================================================",
+        "Events",
+        "============================================================"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_address",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "inactivity_period",
+            "type": "i64"
+          },
+          {
+            "name": "seed",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultStatus",
+      "docs": [
+        "============================================================",
+        "Enums",
+        "============================================================"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Claimed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    }
+  ]
+}
