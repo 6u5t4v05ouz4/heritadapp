@@ -60,4 +60,4 @@ Herita aims to become the inheritance layer of the crypto economy.
 
 ## Status
 
-Currently building MVP.
+Under development.
