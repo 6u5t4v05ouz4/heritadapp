@@ -23,8 +23,38 @@ export interface HeirInput {
   allocationValue: number;
 }
 
+// Helper para retry com backoff
+async function retryRpc(
+  fn: () => Promise<string>,
+  maxRetries = 3,
+  delayMs = 1000
+): Promise<string> {
+  let lastError: any;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      
+      // Não retry em erros de negócio
+      if (err.message?.includes("InvalidInactivityPeriod")) throw err;
+      if (err.message?.includes("TimerNotExpired")) throw err;
+      if (err.message?.includes("VaultNotActive")) throw err;
+      if (err.message?.includes("Unauthorized")) throw err;
+      
+      // Retry em erros de conexão/wallet
+      if (i < maxRetries - 1) {
+        await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 export function useVault() {
-  const { program, publicKey, wallet } = useProgram();
+  const { program, publicKey } = useProgram();
   const { connection } = useConnection();
 
   const getVaultPDA = useCallback(
@@ -61,25 +91,27 @@ export function useVault() {
       );
       const gasReserveLamports = Math.floor(gasReserveSol * LAMPORTS_PER_SOL);
 
-      const tx = await (program as any).methods
-        .initializeVault(
-          new BN(seed),
-          new BN(inactivityPeriodSeconds),
-          heirs.map((h) => ({
-            wallet: new PublicKey(h.wallet),
-            asset: new PublicKey(h.asset),
-            allocationType: h.allocationType,
-            allocationValue: new BN(h.allocationValue),
-          })),
-          keeperFeeBps,
-          new BN(gasReserveLamports)
-        )
-        .accounts({
-          owner: publicKey,
-          vault: vaultPDA,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .initializeVault(
+            new BN(seed),
+            new BN(inactivityPeriodSeconds),
+            heirs.map((h) => ({
+              wallet: new PublicKey(h.wallet),
+              asset: new PublicKey(h.asset),
+              allocationType: h.allocationType,
+              allocationValue: new BN(h.allocationValue),
+            })),
+            keeperFeeBps,
+            new BN(gasReserveLamports)
+          )
+          .accounts({
+            owner: publicKey,
+            vault: vaultPDA,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return { tx, vaultPDA };
     },
@@ -92,14 +124,16 @@ export function useVault() {
 
       const amountLamports = Math.floor(amountSol * LAMPORTS_PER_SOL);
 
-      const tx = await (program as any).methods
-        .depositSol(new BN(amountLamports))
-        .accounts({
-          owner: publicKey,
-          vault: vaultPDA,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .depositSol(new BN(amountLamports))
+          .accounts({
+            owner: publicKey,
+            vault: vaultPDA,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return tx;
     },
@@ -113,17 +147,19 @@ export function useVault() {
       const ownerAta = getAssociatedTokenAddressSync(mint, publicKey);
       const vaultAta = getAssociatedTokenAddressSync(mint, vaultPDA, true);
 
-      const tx = await (program as any).methods
-        .depositToken(new BN(amount))
-        .accounts({
-          owner: publicKey,
-          vault: vaultPDA,
-          mint,
-          ownerAta,
-          vaultAta,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .depositToken(new BN(amount))
+          .accounts({
+            owner: publicKey,
+            vault: vaultPDA,
+            mint,
+            ownerAta,
+            vaultAta,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return tx;
     },
@@ -134,14 +170,16 @@ export function useVault() {
     async (vaultPDA: PublicKey, proof?: Uint8Array) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
 
-      const tx = await (program as any).methods
-        .heartbeat(proof || null)
-        .accounts({
-          executor: publicKey,
-          vault: vaultPDA,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .heartbeat(proof || null)
+          .accounts({
+            executor: publicKey,
+            vault: vaultPDA,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return tx;
     },
@@ -152,14 +190,16 @@ export function useVault() {
     async (vaultPDA: PublicKey) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
 
-      const tx = await (program as any).methods
-        .cancelVault()
-        .accounts({
-          owner: publicKey,
-          vault: vaultPDA,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .cancelVault()
+          .accounts({
+            owner: publicKey,
+            vault: vaultPDA,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return tx;
     },
@@ -187,10 +227,12 @@ export function useVault() {
         }
       }
 
-      const tx = await (program as any).methods
-        .claim()
-        .accounts(accounts)
-        .rpc({ skipPreflight: true, commitment: "confirmed" });
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .claim()
+          .accounts(accounts)
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
 
       return tx;
     },
