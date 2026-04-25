@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
@@ -13,26 +13,46 @@ export default function VaultDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { connected } = useWallet();
+  const { connection } = useConnection();
   const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
 
   const vaultAddress = params.address as string;
   const [vault, setVault] = useState<any>(null);
+  const [vaultBalance, setVaultBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
+  const [now, setNow] = useState(Date.now());
+
+  // Timer que atualiza a cada segundo
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!vaultAddress) return;
     setLoading(true);
-    fetchVault(new PublicKey(vaultAddress))
-      .then((data) => {
+    
+    const loadVault = async () => {
+      try {
+        const data = await fetchVault(new PublicKey(vaultAddress));
         setVault(data);
-      })
-      .catch(() => setVault(null))
-      .finally(() => setLoading(false));
-  }, [vaultAddress, fetchVault]);
+        // Buscar balanço SOL do vault
+        const balance = await connection.getBalance(new PublicKey(vaultAddress));
+        setVaultBalance(balance);
+      } catch {
+        setVault(null);
+        setVaultBalance(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadVault();
+  }, [vaultAddress, fetchVault, connection]);
 
   const handleDeposit = async () => {
     setError("");
@@ -90,7 +110,13 @@ export default function VaultDetailPage() {
     setSuccess("");
     setActionLoading("claim");
     try {
-      const tx = await claim(new PublicKey(vaultAddress));
+      // Pegar os endereços dos herdeiros para passar como remaining accounts
+      const heirPubkeys = vault?.heirs?.map((h: any) => {
+        const addr = h.wallet?.toBase58?.() || h.wallet;
+        return new PublicKey(addr);
+      }) || [];
+      
+      const tx = await claim(new PublicKey(vaultAddress), heirPubkeys);
       setSuccess(`Claim executado! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
@@ -101,14 +127,17 @@ export default function VaultDetailPage() {
   };
 
   const formatTimeRemaining = (lastHeartbeat: number, inactivityPeriod: number) => {
-    const now = Math.floor(Date.now() / 1000);
+    const nowSec = Math.floor(now / 1000);
     const expiry = lastHeartbeat + inactivityPeriod;
-    const diff = expiry - now;
+    const diff = expiry - nowSec;
     if (diff <= 0) return "Expirado";
     const days = Math.floor(diff / 86400);
     const hours = Math.floor((diff % 86400) / 3600);
     const minutes = Math.floor((diff % 3600) / 60);
-    return `${days}d ${hours}h ${minutes}m`;
+    const seconds = diff % 60;
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    return `${minutes}m ${seconds}s`;
   };
 
   if (!connected) {
@@ -168,7 +197,7 @@ export default function VaultDetailPage() {
 
   const lastHeartbeat = Number(vault.lastHeartbeat?.toString() || 0);
   const inactivityPeriod = Number(vault.inactivityPeriod?.toString() || 0);
-  const isExpired = Math.floor(Date.now() / 1000) > lastHeartbeat + inactivityPeriod;
+  const isExpired = Math.floor(now / 1000) > lastHeartbeat + inactivityPeriod;
   const isActive = vault.status?.active !== undefined;
 
   return (
@@ -230,7 +259,7 @@ export default function VaultDetailPage() {
                           0,
                           Math.min(
                             100,
-                            ((lastHeartbeat + inactivityPeriod - Math.floor(Date.now() / 1000)) /
+                            ((lastHeartbeat + inactivityPeriod - Math.floor(now / 1000)) /
                               inactivityPeriod) *
                               100
                           )
@@ -264,6 +293,12 @@ export default function VaultDetailPage() {
               <span className="text-zinc-500">Gas Reserve</span>
               <p className="text-black dark:text-white font-medium">
                 {((Number(vault.gasReserveLamports?.toString?.() || vault.gasReserveLamports)) / LAMPORTS_PER_SOL).toFixed(4)} SOL
+              </p>
+            </div>
+            <div>
+              <span className="text-zinc-500">Saldo Vault</span>
+              <p className="text-black dark:text-white font-medium">
+                {(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
               </p>
             </div>
           </div>

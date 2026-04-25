@@ -7,6 +7,7 @@ import {
   PublicKey,
   SystemProgram,
   LAMPORTS_PER_SOL,
+  SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
@@ -169,21 +170,26 @@ export function useVault() {
     async (vaultPDA: PublicKey, heirs?: PublicKey[]) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
 
-      const remainingAccounts =
-        heirs?.map((h) => ({ pubkey: h, isWritable: true, isSigner: false })) ||
-        [];
+      // Montar accounts object com heirs nas posições corretas
+      const accounts: any = {
+        executor: publicKey,
+        vault: vaultPDA,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      };
+
+      // Adicionar herdeiros como heir_0, heir_1, etc.
+      if (heirs) {
+        for (let i = 0; i < 10; i++) {
+          accounts[`heir_${i}`] = heirs[i] || null;
+        }
+      }
 
       const tx = await (program as any).methods
         .claim()
-        .accounts({
-          executor: publicKey,
-          vault: vaultPDA,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-          rent: SystemProgram.programId,
-        })
-        .remainingAccounts(remainingAccounts)
+        .accounts(accounts)
         .rpc({ skipPreflight: true, commitment: "confirmed" });
 
       return tx;
