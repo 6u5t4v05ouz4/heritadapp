@@ -220,13 +220,9 @@ export function useVault() {
         rent: SYSVAR_RENT_PUBKEY,
       };
 
-      // Add heirs with camelCase keys (Anchor TS client converts snake_case to camelCase)
-      if (heirs && heirs.length > 0) {
-        heirs.forEach((h, i) => {
-          if (i < 10) {
-            accounts[`heir${i}`] = h;
-          }
-        });
+      // Add ALL 10 heir slots (Anchor 0.32 requires all optional accounts)
+      for (let i = 0; i < 10; i++) {
+        accounts[`heir${i}`] = heirs?.[i] || null;
       }
 
       const tx = await retryRpc(() =>
