@@ -220,10 +220,10 @@ export function useVault() {
         rent: SYSVAR_RENT_PUBKEY,
       };
 
-      // Adicionar herdeiros como heir_0, heir_1, etc.
+      // Adicionar herdeiros como heir0, heir1, etc. (camelCase no Anchor 0.32)
       if (heirs) {
         for (let i = 0; i < 10; i++) {
-          accounts[`heir_${i}`] = heirs[i] || null;
+          accounts[`heir${i}`] = heirs[i] || null;
         }
       }
 
