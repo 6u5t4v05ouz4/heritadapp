@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { PublicKey } from "@solana/web3.js";
 import Link from "next/link";
+import ClientOnly from "@/components/ClientOnly";
 
 interface HeirInput {
   wallet: string;
@@ -20,9 +21,8 @@ export default function CreateVaultPage() {
   const { connected } = useWallet();
   const { initializeVault } = useVault();
 
-  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
-  const [seed, setSeed] = useState("0");
+  const [seed, setSeed] = useState(Date.now().toString());
   const [inactivityMinutes, setInactivityMinutes] = useState("60");
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");
@@ -31,11 +31,6 @@ export default function CreateVaultPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    setMounted(true);
-    setSeed(Date.now().toString());
-  }, []);
 
   const addHeir = () => {
     if (heirs.length >= 10) return;
@@ -141,18 +136,6 @@ export default function CreateVaultPage() {
     }
   };
 
-  if (!mounted) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
-        <div className="animate-pulse space-y-4 w-full max-w-md">
-          <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3 mx-auto"></div>
-          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4 mx-auto"></div>
-          <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
   if (!connected) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
@@ -163,7 +146,13 @@ export default function CreateVaultPage() {
           <p className="text-zinc-600 dark:text-zinc-400 mb-6">
             Conecte sua carteira para criar um novo cofre de herança
           </p>
-          <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+          <ClientOnly fallback={
+            <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
+              Conectar Carteira
+            </button>
+          }>
+            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+          </ClientOnly>
         </div>
       </div>
     );

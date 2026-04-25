@@ -1,17 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import ClientOnly from "@/components/ClientOnly";
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
   const { publicKey, connected } = useWallet();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -27,9 +22,15 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col items-center gap-4">
-          <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+          <ClientOnly fallback={
+            <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
+              Conectar Carteira
+            </button>
+          }>
+            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+          </ClientOnly>
 
-          {mounted && connected && publicKey && (
+          {connected && publicKey && (
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">
               {publicKey.toBase58().slice(0, 4)}...
               {publicKey.toBase58().slice(-4)}
@@ -37,7 +38,7 @@ export default function Home() {
           )}
         </div>
 
-        {mounted && connected && (
+        {connected && (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             <Link href="/vaults/create" className="block">
               <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
@@ -70,7 +71,7 @@ export default function Home() {
           </div>
         )}
 
-        {mounted && !connected && (
+        {!connected && (
           <div className="mt-8 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 max-w-lg">
             <h2 className="text-lg font-semibold mb-2 dark:text-white">
               Como funciona?
