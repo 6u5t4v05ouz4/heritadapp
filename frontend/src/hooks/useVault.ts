@@ -210,22 +210,29 @@ export function useVault() {
     async (vaultPDA: PublicKey, heirs?: PublicKey[]) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
 
-      const remainingAccounts =
-        heirs?.map((h) => ({ pubkey: h, isWritable: true, isSigner: false })) ||
-        [];
+      // Build accounts object dynamically - only include heirs that exist
+      const accounts: any = {
+        executor: publicKey,
+        vault: vaultPDA,
+        token_program: TOKEN_PROGRAM_ID,
+        associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
+        system_program: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY,
+      };
+
+      // Add heirs with snake_case keys matching IDL
+      if (heirs && heirs.length > 0) {
+        heirs.forEach((h, i) => {
+          if (i < 10) {
+            accounts[`heir_${i}`] = h;
+          }
+        });
+      }
 
       const tx = await retryRpc(() =>
         (program as any).methods
           .claim()
-          .accounts({
-            executor: publicKey,
-            vault: vaultPDA,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: SYSVAR_RENT_PUBKEY,
-          })
-          .remainingAccounts(remainingAccounts)
+          .accounts(accounts)
           .rpc({ skipPreflight: true, commitment: "confirmed" })
       );
 

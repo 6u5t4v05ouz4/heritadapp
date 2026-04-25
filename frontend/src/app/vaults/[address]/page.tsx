@@ -110,16 +110,23 @@ export default function VaultDetailPage() {
     setSuccess("");
     setActionLoading("claim");
     try {
-      // Pegar os endereços dos herdeiros para passar como remaining accounts
+      // Pegar os endereços dos herdeiros para passar como accounts
       const heirPubkeys = vault?.heirs?.map((h: any) => {
         const addr = h.wallet?.toBase58?.() || h.wallet;
         return new PublicKey(addr);
       }) || [];
       
+      console.log("[CLAIM DEBUG] vault heirs raw:", vault?.heirs);
+      console.log("[CLAIM DEBUG] heirPubkeys:", heirPubkeys.map((p: PublicKey) => p.toBase58()));
+      console.log("[CLAIM DEBUG] vaultAddress:", vaultAddress);
+      
       const tx = await claim(new PublicKey(vaultAddress), heirPubkeys);
       setSuccess(`Claim executado! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
+      console.error("[CLAIM DEBUG] Full error:", err);
+      console.error("[CLAIM DEBUG] Error message:", err.message);
+      console.error("[CLAIM DEBUG] Error logs:", err.logs);
       setError(err.message || "Erro ao executar claim");
     } finally {
       setActionLoading("");
