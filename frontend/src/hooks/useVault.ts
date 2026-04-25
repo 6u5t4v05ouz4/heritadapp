@@ -220,11 +220,11 @@ export function useVault() {
         rent: SYSVAR_RENT_PUBKEY,
       };
 
-      // Add heirs with snake_case keys matching IDL
+      // Add heirs with camelCase keys (Anchor TS client converts snake_case to camelCase)
       if (heirs && heirs.length > 0) {
         heirs.forEach((h, i) => {
           if (i < 10) {
-            accounts[`heir_${i}`] = h;
+            accounts[`heir${i}`] = h;
           }
         });
       }
