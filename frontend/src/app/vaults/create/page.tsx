@@ -22,7 +22,7 @@ export default function CreateVaultPage() {
   const { initializeVault } = useVault();
 
   const [step, setStep] = useState(1);
-  const [seed, setSeed] = useState(Date.now().toString());
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString());
   const [inactivityMinutes, setInactivityMinutes] = useState("60");
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");

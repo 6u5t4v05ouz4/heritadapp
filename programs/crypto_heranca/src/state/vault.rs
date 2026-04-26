@@ -55,8 +55,17 @@ impl Vault {
     }
 
     /// Verifica se o timer expirou
+    /// Retorna false se last_heartbeat == 0 (timer ainda não iniciado — aguardando primeiro depósito)
     pub fn is_expired(&self, current_time: i64) -> bool {
+        if self.last_heartbeat == 0 {
+            return false;
+        }
         current_time > self.last_heartbeat.saturating_add(self.inactivity_period)
+    }
+
+    /// Verifica se o timer de inatividade já foi ativado (primeiro depósito realizado)
+    pub fn is_timer_active(&self) -> bool {
+        self.last_heartbeat != 0
     }
 
     /// Retorna o saldo de SOL disponível para distribuição
@@ -113,7 +122,8 @@ pub enum AllocationType {
 /// ============================================================
 /// Constantes do programa
 /// ============================================================
-pub const MIN_INACTIVITY_PERIOD: i64 = 30 * 24 * 60 * 60; // 30 dias
+// IMPORTANTE: Valor de TESTE para devnet. Antes do mainnet, voltar para 30 dias.
+pub const MIN_INACTIVITY_PERIOD: i64 = 60; // 60 segundos (teste/devnet)
 pub const MAX_INACTIVITY_PERIOD: i64 = 730 * 24 * 60 * 60; // 2 anos
 pub const MIN_GAS_RESERVE_LAMPORTS: u64 = 10_000_000; // 0.01 SOL
 pub const MAX_KEEPER_FEE_BPS: u16 = 100; // 1%

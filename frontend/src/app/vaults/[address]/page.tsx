@@ -134,6 +134,7 @@ export default function VaultDetailPage() {
   };
 
   const formatTimeRemaining = (lastHeartbeat: number, inactivityPeriod: number) => {
+    if (lastHeartbeat === 0) return "Aguardando depósito";
     const nowSec = Math.floor(now / 1000);
     const expiry = lastHeartbeat + inactivityPeriod;
     const diff = expiry - nowSec;
@@ -204,7 +205,8 @@ export default function VaultDetailPage() {
 
   const lastHeartbeat = Number(vault.lastHeartbeat?.toString() || 0);
   const inactivityPeriod = Number(vault.inactivityPeriod?.toString() || 0);
-  const isExpired = Math.floor(now / 1000) > lastHeartbeat + inactivityPeriod;
+  const isTimerActive = lastHeartbeat !== 0;
+  const isExpired = isTimerActive && Math.floor(now / 1000) > lastHeartbeat + inactivityPeriod;
   const isActive = vault.status?.active !== undefined;
 
   return (
@@ -238,42 +240,52 @@ export default function VaultDetailPage() {
                 isActive
                   ? isExpired
                     ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                    : !isTimerActive
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                     : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                   : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
               }`}
             >
-              {isActive ? (isExpired ? "Expirado" : "Ativo") : "Inativo"}
+              {isActive ? (isExpired ? "Expirado" : !isTimerActive ? "Aguardando Depósito" : "Ativo") : "Inativo"}
             </span>
           </div>
 
           {isActive && (
             <div className="mb-4">
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-zinc-500">Tempo restante</span>
+                <span className="text-zinc-500">
+                  {isTimerActive ? "Tempo restante" : "Timer de inatividade"}
+                </span>
                 <span className="font-mono text-black dark:text-white">
                   {formatTimeRemaining(lastHeartbeat, inactivityPeriod)}
                 </span>
               </div>
-              <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    isExpired ? "bg-red-500 w-full" : "bg-green-500"
-                  }`}
-                  style={{
-                    width: isExpired
-                      ? "100%"
-                      : `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            ((lastHeartbeat + inactivityPeriod - Math.floor(now / 1000)) /
-                              inactivityPeriod) *
-                              100
-                          )
-                        )}%`,
-                  }}
-                />
-              </div>
+              {isTimerActive ? (
+                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      isExpired ? "bg-red-500 w-full" : "bg-green-500"
+                    }`}
+                    style={{
+                      width: isExpired
+                        ? "100%"
+                        : `${Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              ((lastHeartbeat + inactivityPeriod - Math.floor(now / 1000)) /
+                                inactivityPeriod) *
+                                100
+                            )
+                          )}%`,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-amber-400 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
+                </div>
+              )}
             </div>
           )}
 

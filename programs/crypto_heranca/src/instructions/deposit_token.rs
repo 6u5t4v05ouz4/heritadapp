@@ -41,6 +41,12 @@ pub fn handler(ctx: Context<crate::crypto_heranca::DepositToken>, amount: u64) -
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
 
+    // Ativar timer de inatividade no primeiro depósito
+    if vault.last_heartbeat == 0 {
+        let clock = Clock::get()?;
+        vault.last_heartbeat = clock.unix_timestamp;
+    }
+
     // Emitir evento
     emit!(Deposit {
         vault_address: vault.key(),

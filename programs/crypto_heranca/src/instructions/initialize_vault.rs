@@ -94,7 +94,7 @@ pub fn handler(
     // ── 2. Inicialização do vault ─────────────────────────────────
     
     vault.owner = owner.key();
-    vault.last_heartbeat = clock.unix_timestamp;
+    vault.last_heartbeat = 0; // Timer inativo — será ativado no primeiro depósito
     vault.inactivity_period = inactivity_period;
     vault.heirs = heirs;
     vault.assets = Vec::new(); // Inicia vazio, preenchido nos deposits

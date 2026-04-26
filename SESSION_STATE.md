@@ -1,88 +1,77 @@
 # Session State
 
-> Last updated: 2026-04-24T19:00:00Z
+> Last updated: 2026-04-25T22:36:47-03:00
 > Session started: 2026-04-24
 
 ## Current Task
-**Erro no claim do vault:** `SendTransactionError: Unknown action 'undefined'`
+**Resolver Erro "This transaction has already been processed" / "already in use" ao Criar Vaults**
 
-O usuário vai reiniciar o PC. Na próxima sessão, precisamos resolver este erro.
+O contrato já foi redeployado com `MIN_INACTIVITY_PERIOD = 60s` (o log da segunda tentativa mostra `Instruction: InitializeVault` executando com sucesso). O problema atual é que a criação do vault está sendo submetida duas vezes (ou retentada indevidamente), causando:
+1. Primeira tentativa: `This transaction has already been processed` (tx já foi enviada)
+2. Segunda tentativa: `already in use` (o PDA do vault já foi criado pela primeira tentativa)
+
+Foi implementada lógica de recovery no frontend para detectar quando o vault foi criado apesar do erro.
 
 ## What Was Done
-- [x] Contrato deployado na devnet com timer de 60 segundos (WSL)
+- [x] Contrato deployado na devnet com timer de 60 segundos (WSL) — **código corrigido agora**
 - [x] Frontend com todas as páginas (landing, vaults list, create, detail)
-- [x] Timer atualizando em tempo real (a cada 1 segundo)
-- [x] Saldo do vault sendo buscado on-chain
-- [x] Retry automático em todas as transações
-- [x] Claim passando herdeiros corretamente (camelCase heir0...heir9)
-- [x] Build do frontend passando sem erros
-- [x] Deploy de SOL funcionando (com notificação verde)
+- [x] Anchor 0.32: Ajustado hook de `claim` para passar slots ausentes de herdeiros usando o `programId` como sentinel, e as accounts com nomes em camelCase.
+- [x] Timer de Inatividade atualizado (Rust & Frontend): Agora só inicia a contagem quando o primeiro depósito é feito (`last_heartbeat = 0` na criação).
+- [x] Tratamento de erros no `retryRpc` melhorado: Não retenta para "Unknown action" e "already in use", além de adicionar logs melhores.
+- [x] UX de Criação de Vault: Seed padrão do formulário alterada de `Date.now()` para `Math.random()` de alta entropia para prevenir colisões de PDA caso a página não seja recarregada.
+- [x] UX de Vault Detail: Quando o timer não iniciou (`last_heartbeat == 0`), mostra o status "Aguardando Depósito" com barra de carregamento pulsante amarela ao invés de vermelho "Expirado".
+- [x] Pre-flight Check na Criação: `initializeVault` agora checa preventivamente se a conta PDA do vault já existe on-chain antes de enviar a transação, dando um erro legível ao usuário.
+- [x] **Diagnóstico aprimorado no `useVault.ts`**: Adicionada função `verifyProgramDeployed` que checa se o programa existe e é executável antes de enviar transações. Erro "Unknown action" da Phantom agora é traduzido em mensagem instruindo a verificar a rede.
+- [x] **Correção de `MIN_INACTIVITY_PERIOD`**: Ajustado de 30 dias para 60 segundos no código-fonte (`vault.rs`) para permitir testes na devnet.
+- [x] **Fix de double-submission no `retryRpc`**: "already been processed" adicionado à lista de erros não-retentáveis.
+- [x] **Recovery de vault criado**: Após erro na criação, o hook verifica se o PDA do vault existe on-chain. Se existir, considera sucesso e redireciona.
 
 ## Active Problem / Blocker
-**Claim falha com erro:**
-```
-SendTransactionError: Unknown action 'undefined'
-```
-
-### Contexto do erro:
-- O vault foi criado com sucesso
-- SOL foi depositado com sucesso
-- Timer expirou (3 minutos)
-- Ao clicar "Executar Claim", dá erro `Unknown action 'undefined'`
-- O erro vem do retryRpc → claim → handleClaim
-- Não é mais "Account `heir0` not provided" (isso foi resolvido!)
-
-### O que já tentamos para o claim:
-1. ❌ Passar heirs via `.remainingAccounts()` → "heir0 not provided"
-2. ❌ Passar heirs como `heir_0` (snake_case) → "heir0 not provided"
-3. ❌ Passar heirs como `heir0` (camelCase) → "heir2 not provided" (faltavam os outros slots)
-4. ❌ Passar TODOS os 10 slots (heir0...heir9) com null → "Unknown action 'undefined'"
-
-### Diagnóstico atual:
-O erro `Unknown action 'undefined'` pode ser:
-1. **Erro do Anchor 0.32 com `skipPreflight: true`** - O skipPreflight pode estar causando erro de parsing
-2. **Transação malformada** - Algum account ou dado está incorreto
-3. **Erro da wallet Phantom** - A extensão pode estar rejeitando a transação
+**Double-submission / Retry indevido na Criação de Vaults**
+- O contrato já está com `MIN_INACTIVITY_PERIOD = 60s` na devnet (confirmado pelos logs de simulação).
+- O erro atual é `This transaction has already been processed` seguido de `already in use`.
+- Causa: `retryRpc` retentava em "already processed", e na segunda tentativa o PDA já existia.
+- **Fix aplicado**: "already been processed" agora é não-retentável, e existe recovery check que verifica se o vault foi criado após o erro.
+- **Próximo passo**: testar a criação novamente para validar o fix.
 
 ## What's Pending / Next Steps
-1. **URGENTE: Resolver erro `Unknown action 'undefined'` no claim**
-   - Arquivo: `frontend/src/hooks/useVault.ts` (função `claim`)
-   - Sugestão: Remover `skipPreflight: true` temporariamente para ver o erro real
-   - Ou adicionar `.simulate()` antes de `.rpc()` para debugar
-   - Ou tentar com wallet Solflare em vez de Phantom
+1. **Validar a Criação de Vaults após o Fix de Retry**
+   - Tentar criar vault com período curto (ex: 1 minuto = 60 segundos).
+   - Confirmar que não aparece mais `already been processed` / `already in use`.
+   - Se aparecer "already processed", o recovery check deve detectar o vault criado e redirecionar normalmente.
 
-2. **Testar se o claim funciona após correção**
-   - Criar vault com 2 minutos
-   - Depositar SOL
-   - Esperar expirar
-   - Executar claim
+2. **Testar se o Claim funciona com Anchor 0.32**
+   - Depositar SOL no vault criado.
+   - Esperar o timer de inatividade expirar (60s).
+   - Clicar em "Executar Claim".
+   - Confirmar se o erro original `Unknown action 'undefined'` da hora do *claim* não reaparece.
 
-3. **Se claim funcionar:**
-   - Testar distribuição para múltiplos herdeiros
-   - Verificar se keeper fee é pago
-   - Verificar se gas reserve é reembolsado
+3. **Verificar Regras de Negócio Pós-Claim**
+   - Testar distribuição para múltiplos herdeiros.
+   - Verificar se o keeper fee é pago.
+   - Verificar se o gas reserve é reembolsado ao executor.
 
-4. **Depois dos testes:**
-   - Voltar contrato para 30 dias no WSL
-   - Rebuildar e redeployar na devnet
-   - Fazer deploy em produção (Vercel)
+4. **Depois dos testes finais:**
+   - Reverter o contrato para prazos reais (30 dias) no ambiente de WSL.
+   - Rebuildar e fazer o deploy definitivo na devnet/mainnet.
+   - Fazer o deploy do frontend em produção (ex: Vercel).
 
 ## Key Decisions & Rationale
-- **Timer em minutos:** Para facilitar testes, o frontend aceita minutos (mínimo 1)
-- **Contrato com 60s:** Deploy temporário na devnet para testar claim rapidamente
-- **skipPreflight:** Adicionado para evitar "transaction already processed", mas pode estar causando outros problemas
-- **Retry com backoff:** 3 tentativas com espera crescente (1s, 2s, 3s)
+- **Timer de Inatividade no 1º Depósito:** Alterado no Rust para que o `last_heartbeat` comece como 0 e só vire o `timestamp` atual após a execução com sucesso da instrução de depósito (SOL ou token). Isso evita que vaults vazios se tornem inativos/expirados, o que não faz sentido lógico.
+- **Seed Randômica (`Math.random`):** O uso de `Date.now()` causava a reutilização da mesma seed se o formulário não fosse completamente desmontado entre criações, causando tentativa de sobrepor PDAs.
+- **Pre-flight Check (`connection.getAccountInfo`):** Ao invés de deixar a Wallet falhar opacamente na assinatura do blockhash ao tentar o init, o hook agora checa antes de enviar o RPC.
 
 ## Files Modified / Created
-- `frontend/src/hooks/useVault.ts` - hook principal, função claim com retry
-- `frontend/src/app/vaults/[address]/page.tsx` - página de detalhes do vault
-- `frontend/src/components/ClientOnly.tsx` - componente para evitar hydration mismatch
-- `programs/crypto_heranca/src/state/vault.rs` - MIN_INACTIVITY_PERIOD = 60s (WSL)
-- `deploy-devnet.sh` - script de deploy no WSL
+- `programs/crypto_heranca/src/state/vault.rs` - `is_expired` e `is_timer_active` tratam `last_heartbeat == 0`.
+- `programs/crypto_heranca/src/instructions/initialize_vault.rs` - set de `last_heartbeat = 0`.
+- `programs/crypto_heranca/src/instructions/deposit_sol.rs` - Start timer.
+- `programs/crypto_heranca/src/instructions/deposit_token.rs` - Start timer.
+- `frontend/src/hooks/useVault.ts` - `initializeVault` com check de PDA, `verifyProgramDeployed`, recovery após "already processed", e ajustes nos erros em `retryRpc`.
+- `frontend/src/app/vaults/create/page.tsx` - Seed inicial usando `Math.random()`.
+- `frontend/src/app/vaults/[address]/page.tsx` - Interface atualizada para status "Aguardando Depósito".
+- `frontend/src/app/vaults/page.tsx` - Status do timer listado como "Aguardando Depósito".
 
 ## Important Context
 - Repositório: https://github.com/6u5t4v05ouz4/heritadapp
 - Program ID devnet: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
-- WSL path: `~/crypto-heranca-build`
-- O claim PRECISA de herdeiros passados corretamente (heir0...heir9, camelCase, todos os 10 slots)
-- O erro `Unknown action 'undefined'` é NOVO - precisa investigar a causa raiz
+- As alterações no contrato em Rust ainda requerem o build (`anchor build`) para fazerem efeito no lado da blockchain.

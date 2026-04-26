@@ -36,12 +36,17 @@ async function retryRpc(
       return await fn();
     } catch (err: any) {
       lastError = err;
+      console.error(`[retryRpc] Attempt ${i + 1}/${maxRetries} failed:`, err.message, err);
       
-      // Não retry em erros de negócio
+      // Não retry em erros de negócio / programa
       if (err.message?.includes("InvalidInactivityPeriod")) throw err;
       if (err.message?.includes("TimerNotExpired")) throw err;
       if (err.message?.includes("VaultNotActive")) throw err;
       if (err.message?.includes("Unauthorized")) throw err;
+      if (err.message?.includes("Unknown action")) throw err;
+      if (err.message?.includes("already in use")) throw err;
+      if (err.message?.includes("already been processed")) throw err;
+      if (err.message?.includes("Program not deployed")) throw err;
       
       // Retry em erros de conexão/wallet
       if (i < maxRetries - 1) {
@@ -51,6 +56,35 @@ async function retryRpc(
   }
   
   throw lastError;
+}
+
+// Verifica se o programa está deployado na rede atual
+async function verifyProgramDeployed(
+  connection: any,
+  programId: PublicKey
+): Promise<void> {
+  try {
+    const accountInfo = await connection.getAccountInfo(programId);
+    if (!accountInfo) {
+      throw new Error(
+        `Programa não encontrado na rede atual (${programId.toBase58()}). ` +
+        `Verifique se: 1) Phantom está na Devnet, 2) O programa foi deployado.`
+      );
+    }
+    if (!accountInfo.executable) {
+      throw new Error(
+        `Conta ${programId.toBase58()} existe mas não é um programa executável. ` +
+        `Verifique se o Program ID está correto.`
+      );
+    }
+    console.log("[verifyProgramDeployed] Programa encontrado e é executável:", programId.toBase58());
+  } catch (err: any) {
+    if (err.message?.includes("Programa não encontrado") || err.message?.includes("não é um programa")) {
+      throw err;
+    }
+    console.error("[verifyProgramDeployed] Erro ao verificar programa:", err);
+    // Não bloqueia em erros de conexão, deixa o fluxo continuar
+  }
 }
 
 export function useVault() {
@@ -86,36 +120,85 @@ export function useVault() {
       const vaultPDA = getVaultPDA(publicKey, seed);
       if (!vaultPDA) throw new Error("Failed to derive vault PDA");
 
+      // Verificar se o vault PDA já existe on-chain (previne erro opaco "Unknown action")
+      const existingAccount = await connection.getAccountInfo(vaultPDA);
+      if (existingAccount) {
+        throw new Error(
+          `Vault com seed ${seed} já existe! Use uma seed diferente.`
+        );
+      }
+
       const inactivityPeriodSeconds = Math.floor(
         inactivityPeriodMinutes * 60
       );
       const gasReserveLamports = Math.floor(gasReserveSol * LAMPORTS_PER_SOL);
 
-      const tx = await retryRpc(() =>
-        (program as any).methods
-          .initializeVault(
-            new BN(seed),
-            new BN(inactivityPeriodSeconds),
-            heirs.map((h) => ({
-              wallet: new PublicKey(h.wallet),
-              asset: new PublicKey(h.asset),
-              allocationType: h.allocationType,
-              allocationValue: new BN(h.allocationValue),
-            })),
-            keeperFeeBps,
-            new BN(gasReserveLamports)
-          )
-          .accounts({
-            owner: publicKey,
-            vault: vaultPDA,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc({ skipPreflight: true, commitment: "confirmed" })
-      );
+      console.log("[initializeVault] Params:", {
+        seed,
+        inactivityPeriodSeconds,
+        heirs: heirs.length,
+        keeperFeeBps,
+        gasReserveLamports,
+        vaultPDA: vaultPDA.toBase58(),
+        programId: program.programId.toBase58(),
+      });
+
+      // Verificar se o programa está realmente deployado na rede atual
+      await verifyProgramDeployed(connection, program.programId);
+
+      let tx: string;
+      try {
+        tx = await retryRpc(async () => {
+          try {
+            return await (program as any).methods
+              .initializeVault(
+                new BN(seed),
+                new BN(inactivityPeriodSeconds),
+                heirs.map((h) => ({
+                  wallet: new PublicKey(h.wallet),
+                  asset: new PublicKey(h.asset),
+                  allocationType: h.allocationType,
+                  allocationValue: new BN(h.allocationValue),
+                })),
+                keeperFeeBps,
+                new BN(gasReserveLamports)
+              )
+              .accounts({
+                owner: publicKey,
+                vault: vaultPDA,
+                systemProgram: SystemProgram.programId,
+              })
+              .rpc({ skipPreflight: false, commitment: "confirmed" });
+          } catch (rpcErr: any) {
+            // Enriquecer erro opaco do Phantom com contexto útil
+            if (rpcErr.message?.includes("Unknown action")) {
+              throw new Error(
+                `Phantom não conseguiu processar a transação. ` +
+                `Causas prováveis: 1) Sua Phantom não está na Devnet — clique no menu da Phantom e mude para Devnet. ` +
+                `2) O programa ${program.programId.toBase58()} não está deployado na rede atual. ` +
+                `3) Conflito de extensão de wallet. Erro original: ${rpcErr.message}`
+              );
+            }
+            throw rpcErr;
+          }
+        });
+      } catch (retryErr: any) {
+        // Recovery: se o vault PDA foi criado apesar do erro (ex: "already processed"),
+        // consideramos sucesso e retornamos o PDA para o redirecionamento.
+        const accountNow = await connection.getAccountInfo(vaultPDA);
+        if (accountNow) {
+          console.warn(
+            `[initializeVault] Transação falhou com erro "${retryErr.message}" ` +
+            `mas o vault PDA ${vaultPDA.toBase58()} existe. Considerando sucesso.`
+          );
+          return { tx: "", vaultPDA };
+        }
+        throw retryErr;
+      }
 
       return { tx, vaultPDA };
     },
-    [program, publicKey, getVaultPDA]
+    [program, publicKey, getVaultPDA, connection]
   );
 
   const depositSol = useCallback(

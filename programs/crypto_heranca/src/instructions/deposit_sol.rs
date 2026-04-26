@@ -15,7 +15,7 @@ use crate::events::Deposit;
 /// - Vault deve estar ativo
 /// - Transferência via system_program (CPI seguro)
 pub fn handler(ctx: Context<crate::crypto_heranca::DepositSol>, amount: u64) -> Result<()> {
-    let vault = &ctx.accounts.vault;
+    let vault = &mut ctx.accounts.vault;
     let owner = &ctx.accounts.owner;
 
     // Validar que o owner tem saldo suficiente (a transação falhará naturalmente se não)
@@ -30,6 +30,12 @@ pub fn handler(ctx: Context<crate::crypto_heranca::DepositSol>, amount: u64) -> 
         },
     );
     anchor_lang::system_program::transfer(cpi_context, amount)?;
+
+    // Ativar timer de inatividade no primeiro depósito
+    if vault.last_heartbeat == 0 {
+        let clock = Clock::get()?;
+        vault.last_heartbeat = clock.unix_timestamp;
+    }
 
     // Emitir evento
     emit!(Deposit {

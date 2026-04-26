@@ -39,6 +39,7 @@ export default function VaultsPage() {
   }, [connected, publicKey, fetchVaultsByOwner]);
 
   const formatTimeRemaining = (lastHeartbeat: number, inactivityPeriod: number) => {
+    if (lastHeartbeat === 0) return "Aguardando depósito";
     const now = Math.floor(Date.now() / 1000);
     const expiry = lastHeartbeat + inactivityPeriod;
     const diff = expiry - now;
