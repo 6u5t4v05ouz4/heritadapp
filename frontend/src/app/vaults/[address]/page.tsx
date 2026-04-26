@@ -7,7 +7,31 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Heart,
+  Ban,
+  Zap,
+  Coins,
+  Wallet,
+  Users,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  TrendingUp,
+  Settings,
+} from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Badge from "@/components/ui/Badge";
+import CopyButton from "@/components/ui/CopyButton";
+import ProgressBar from "@/components/ui/ProgressBar";
+import Skeleton from "@/components/ui/Skeleton";
+import { useToast } from "@/hooks/useToast";
 
 export default function VaultDetailPage() {
   const params = useParams();
@@ -15,6 +39,7 @@ export default function VaultDetailPage() {
   const { connected } = useWallet();
   const { connection } = useConnection();
   const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
+  const { success, error: showError, ToastContainer } = useToast();
 
   const vaultAddress = params.address as string;
   const [vault, setVault] = useState<any>(null);
@@ -22,11 +47,9 @@ export default function VaultDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [now, setNow] = useState(Date.now());
 
-  // Timer que atualiza a cada segundo
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
@@ -35,12 +58,11 @@ export default function VaultDetailPage() {
   useEffect(() => {
     if (!vaultAddress) return;
     setLoading(true);
-    
+
     const loadVault = async () => {
       try {
         const data = await fetchVault(new PublicKey(vaultAddress));
         setVault(data);
-        // Buscar balanço SOL do vault
         const balance = await connection.getBalance(new PublicKey(vaultAddress));
         setVaultBalance(balance);
       } catch {
@@ -50,23 +72,25 @@ export default function VaultDetailPage() {
         setLoading(false);
       }
     };
-    
+
     loadVault();
   }, [vaultAddress, fetchVault, connection]);
 
   const handleDeposit = async () => {
     setError("");
-    setSuccess("");
     setActionLoading("deposit");
     try {
       const tx = await depositSol(new PublicKey(vaultAddress), Number(depositAmount));
-      setSuccess(`Depósito enviado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Depósito enviado! Tx: ${tx.slice(0, 20)}...`);
       setDepositAmount("");
-      // Refresh vault
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
+      const bal = await connection.getBalance(new PublicKey(vaultAddress));
+      setVaultBalance(bal);
     } catch (err: any) {
-      setError(err.message || "Erro ao depositar");
+      const msg = err.message || "Erro ao depositar";
+      setError(msg);
+      showError(msg);
     } finally {
       setActionLoading("");
     }
@@ -74,15 +98,16 @@ export default function VaultDetailPage() {
 
   const handleHeartbeat = async () => {
     setError("");
-    setSuccess("");
     setActionLoading("heartbeat");
     try {
       const tx = await heartbeat(new PublicKey(vaultAddress));
-      setSuccess(`Heartbeat enviado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Heartbeat enviado! Tx: ${tx.slice(0, 20)}...`);
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
     } catch (err: any) {
-      setError(err.message || "Erro no heartbeat");
+      const msg = err.message || "Erro no heartbeat";
+      setError(msg);
+      showError(msg);
     } finally {
       setActionLoading("");
     }
@@ -91,14 +116,15 @@ export default function VaultDetailPage() {
   const handleCancel = async () => {
     if (!confirm("Tem certeza que deseja cancelar este vault? Todos os fundos serão devolvidos.")) return;
     setError("");
-    setSuccess("");
     setActionLoading("cancel");
     try {
       const tx = await cancelVault(new PublicKey(vaultAddress));
-      setSuccess(`Vault cancelado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Vault cancelado! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
-      setError(err.message || "Erro ao cancelar");
+      const msg = err.message || "Erro ao cancelar";
+      setError(msg);
+      showError(msg);
     } finally {
       setActionLoading("");
     }
@@ -107,27 +133,20 @@ export default function VaultDetailPage() {
   const handleClaim = async () => {
     if (!confirm("Executar claim? Esta ação distribuirá os ativos para os herdeiros.")) return;
     setError("");
-    setSuccess("");
     setActionLoading("claim");
     try {
-      // Pegar os endereços dos herdeiros para passar como accounts
       const heirPubkeys = vault?.heirs?.map((h: any) => {
         const addr = h.wallet?.toBase58?.() || h.wallet;
         return new PublicKey(addr);
       }) || [];
-      
-      console.log("[CLAIM DEBUG] vault heirs raw:", vault?.heirs);
-      console.log("[CLAIM DEBUG] heirPubkeys:", heirPubkeys.map((p: PublicKey) => p.toBase58()));
-      console.log("[CLAIM DEBUG] vaultAddress:", vaultAddress);
-      
+
       const tx = await claim(new PublicKey(vaultAddress), heirPubkeys);
-      setSuccess(`Claim executado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Claim executado! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
-      console.error("[CLAIM DEBUG] Full error:", err);
-      console.error("[CLAIM DEBUG] Error message:", err.message);
-      console.error("[CLAIM DEBUG] Error logs:", err.logs);
-      setError(err.message || "Erro ao executar claim");
+      const msg = err.message || "Erro ao executar claim";
+      setError(msg);
+      showError(msg);
     } finally {
       setActionLoading("");
     }
@@ -150,33 +169,44 @@ export default function VaultDetailPage() {
 
   if (!connected) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
-        <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center max-w-md">
-          <h1 className="text-2xl font-bold text-black dark:text-white mb-4">
-            Detalhes do Vault
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-            Conecte sua carteira para visualizar este vault
-          </p>
-          <ClientOnly fallback={
-            <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
-              Conectar Carteira
-            </button>
-          }>
-            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
-          </ClientOnly>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
+        <PageHeader title="Detalhes do Vault" />
+        <Card className="mt-8">
+          <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
+            <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
+              <Wallet className="w-8 h-8 text-text-tertiary" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <p className="text-sm text-text-secondary max-w-sm mb-6">
+              Conecte sua carteira para visualizar este vault.
+            </p>
+            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+              <WalletMultiButton />
+            </ClientOnly>
+          </div>
+        </Card>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12">
-        <div className="animate-pulse space-y-4 w-full max-w-2xl">
-          <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded w-1/3"></div>
-          <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3"></div>
-          <div className="h-32 bg-zinc-200 dark:bg-zinc-800 rounded"></div>
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
+        <div className="flex items-center gap-3 mb-8">
+          <Skeleton className="w-9 h-9 rounded-lg" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <Card className="mb-6">
+          <Skeleton className="h-32 w-full" />
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card><Skeleton className="h-24 w-full" /></Card>
+          <Card><Skeleton className="h-24 w-full" /></Card>
+          <Card><Skeleton className="h-24 w-full" /></Card>
+          <Card><Skeleton className="h-24 w-full" /></Card>
         </div>
       </div>
     );
@@ -184,271 +214,335 @@ export default function VaultDetailPage() {
 
   if (!vault) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
-        <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center max-w-md">
-          <h1 className="text-2xl font-bold text-black dark:text-white mb-4">
-            Vault não encontrado
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-            Este endereço não corresponde a nenhum vault ativo
-          </p>
-          <Link
-            href="/vaults"
-            className="inline-block py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
-          >
-            ← Voltar para Vaults
-          </Link>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
+        <PageHeader title="Vault não encontrado" backHref="/vaults" />
+        <Card className="mt-8">
+          <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
+            <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5">
+              <AlertTriangle className="w-8 h-8 text-rose-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Vault não encontrado</h3>
+            <p className="text-sm text-text-secondary max-w-sm mb-6">
+              Este endereço não corresponde a nenhum vault ativo.
+            </p>
+            <Link href="/vaults">
+              <Button variant="secondary">← Voltar para Vaults</Button>
+            </Link>
+          </div>
+        </Card>
       </div>
     );
   }
 
-  const lastHeartbeat = Number(vault.lastHeartbeat?.toString() || 0);
-  const inactivityPeriod = Number(vault.inactivityPeriod?.toString() || 0);
+  const lastHeartbeat = Number(vault.lastHeartbeat?.toString?.() || vault.lastHeartbeat || 0);
+  const inactivityPeriod = Number(vault.inactivityPeriod?.toString?.() || vault.inactivityPeriod || 0);
+  const isWaiting = lastHeartbeat === 0;
   const isTimerActive = lastHeartbeat !== 0;
   const isExpired = isTimerActive && Math.floor(now / 1000) > lastHeartbeat + inactivityPeriod;
   const isActive = vault.status?.active !== undefined;
 
+  const totalSeconds = inactivityPeriod;
+  const remainingSeconds = isExpired ? 0 : Math.max(0, lastHeartbeat + inactivityPeriod - Math.floor(now / 1000));
+  const progress = isWaiting ? 0 : isExpired ? 100 : ((totalSeconds - remainingSeconds) / totalSeconds) * 100;
+  let timerVariant: "success" | "warning" | "danger" | "neutral" = "success";
+  if (isWaiting) timerVariant = "neutral";
+  else if (isExpired) timerVariant = "danger";
+  else if (remainingSeconds < totalSeconds * 0.25) timerVariant = "danger";
+  else if (remainingSeconds < totalSeconds * 0.5) timerVariant = "warning";
+
+  const statusBadge = isActive
+    ? isExpired
+      ? "expired"
+      : isWaiting
+      ? "waiting"
+      : "active"
+    : "default";
+
+  const statusLabel = isActive
+    ? isExpired
+      ? "Expirado"
+      : isWaiting
+      ? "Aguardando Depósito"
+      : "Ativo"
+    : "Inativo";
+
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-black py-12 px-4">
-      <div className="w-full max-w-3xl flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-black dark:text-white">
-              Vault
-            </h1>
-            <p className="font-mono text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              {vaultAddress}
-            </p>
-          </div>
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <ToastContainer />
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
           <Link
             href="/vaults"
-            className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-bg-elevated border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-focus transition-all"
+            aria-label="Voltar"
           >
-            ← Voltar
+            <ArrowLeft className="w-4 h-4" />
           </Link>
-        </div>
-
-        {/* Status Card */}
-        <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-black dark:text-white">
-              Status
-            </h2>
-            <span
-              className={`text-sm px-3 py-1 rounded-full font-medium ${
-                isActive
-                  ? isExpired
-                    ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                    : !isTimerActive
-                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-                    : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-              }`}
-            >
-              {isActive ? (isExpired ? "Expirado" : !isTimerActive ? "Aguardando Depósito" : "Ativo") : "Inativo"}
-            </span>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-text-primary tracking-tight">Vault</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <CopyButton
+                text={vaultAddress}
+                displayText={`${vaultAddress.slice(0, 8)}...${vaultAddress.slice(-8)}`}
+                className="text-xs font-mono text-text-tertiary"
+              />
+              <Badge variant={statusBadge as any}>{statusLabel}</Badge>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {isActive && (
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-zinc-500">
-                  {isTimerActive ? "Tempo restante" : "Timer de inatividade"}
-                </span>
-                <span className="font-mono text-black dark:text-white">
-                  {formatTimeRemaining(lastHeartbeat, inactivityPeriod)}
-                </span>
+      {/* Timer Hero */}
+      <Card className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-bg-elevated border border-border-subtle flex items-center justify-center">
+              <Clock className="w-5 h-5 text-text-secondary" />
+            </div>
+            <div>
+              <p className="text-sm text-text-secondary">
+                {isWaiting ? "Timer de inatividade" : isExpired ? "Status" : "Tempo restante"}
+              </p>
+              <p
+                className={`text-2xl md:text-3xl font-mono font-bold ${
+                  timerVariant === "danger"
+                    ? "text-rose-400"
+                    : timerVariant === "warning"
+                    ? "text-amber-400"
+                    : timerVariant === "success"
+                    ? "text-emerald-400"
+                    : "text-text-primary"
+                }`}
+              >
+                {formatTimeRemaining(lastHeartbeat, inactivityPeriod)}
+              </p>
+            </div>
+          </div>
+        </div>
+        <ProgressBar value={progress} variant={timerVariant} />
+      </Card>
+
+      {/* Dashboard Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Coins className="w-4 h-4 text-emerald-400" />
+            </div>
+            <h3 className="font-semibold text-text-primary">Saldo</h3>
+          </div>
+          <p className="text-2xl font-mono font-bold text-text-primary">
+            {(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
+          </p>
+          <p className="text-xs text-text-tertiary mt-1">{vault.account?.assets?.length || 0} assets</p>
+        </Card>
+
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+              <Settings className="w-4 h-4 text-accent-primary" />
+            </div>
+            <h3 className="font-semibold text-text-primary">Configurações</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-text-tertiary">Taxa Keeper</span>
+              <span className="text-text-primary font-medium">
+                {(Number(vault.keeperFeeBps?.toString?.() || vault.keeperFeeBps || 0) / 100).toFixed(2)}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-tertiary">Gas Reserve</span>
+              <span className="text-text-primary font-medium">
+                {((Number(vault.gasReserveLamports?.toString?.() || vault.gasReserveLamports || 0)) / LAMPORTS_PER_SOL).toFixed(4)} SOL
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-tertiary">Seed</span>
+              <span className="text-text-primary font-mono">{vault.seed?.toString?.() || vault.seed}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-tertiary">Inatividade</span>
+              <span className="text-text-primary font-medium">{inactivityPeriod} min</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Alerts */}
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* Deposit */}
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary">Depositar SOL</h3>
+              <p className="text-xs text-text-tertiary">Adicione fundos ao vault</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              placeholder="Quantidade em SOL"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleDeposit}
+              disabled={actionLoading === "deposit" || !depositAmount}
+              isLoading={actionLoading === "deposit"}
+            >
+              Depositar
+            </Button>
+          </div>
+        </Card>
+
+        {/* Heartbeat */}
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+              <Heart className="w-4 h-4 text-accent-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary">Heartbeat</h3>
+              <p className="text-xs text-text-tertiary">Reinicia o timer de inatividade</p>
+            </div>
+          </div>
+          <Button
+            onClick={handleHeartbeat}
+            disabled={actionLoading === "heartbeat"}
+            isLoading={actionLoading === "heartbeat"}
+            className="w-full"
+          >
+            Enviar Heartbeat
+          </Button>
+        </Card>
+
+        {/* Cancel */}
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+              <Ban className="w-4 h-4 text-rose-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary">Cancelar Vault</h3>
+              <p className="text-xs text-text-tertiary">Devolve fundos e fecha o vault</p>
+            </div>
+          </div>
+          <Button
+            variant="danger"
+            onClick={handleCancel}
+            disabled={actionLoading === "cancel"}
+            isLoading={actionLoading === "cancel"}
+            className="w-full"
+          >
+            Cancelar Vault
+          </Button>
+        </Card>
+
+        {/* Claim */}
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary">Executar Claim</h3>
+              <p className="text-xs text-text-tertiary">
+                {isExpired ? "Disponível — vault expirado" : "Disponível após expiração"}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleClaim}
+            disabled={actionLoading === "claim" || !isExpired}
+            isLoading={actionLoading === "claim"}
+            className="w-full"
+          >
+            {!isExpired ? "Aguardando expiração" : "Executar Claim"}
+          </Button>
+        </Card>
+      </div>
+
+      {/* Heirs */}
+      {vault.heirs && vault.heirs.length > 0 && (
+        <Card>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 rounded-lg bg-accent-warm/10 border border-accent-warm/20 flex items-center justify-center">
+              <Users className="w-4 h-4 text-accent-warm" />
+            </div>
+            <h3 className="font-semibold text-text-primary">Herdeiros ({vault.heirs.length})</h3>
+          </div>
+          <div className="space-y-3">
+            {vault.heirs.map((heir: any, i: number) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl bg-bg-elevated border border-border-subtle"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs text-text-tertiary truncate max-w-[70%]">
+                    {heir.wallet?.toBase58?.() || heir.wallet}
+                  </span>
+                  <Badge variant="default">
+                    {heir.allocationType?.percentage !== undefined ? "%" : "Fixo"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-text-secondary">
+                    Asset: <span className="font-mono text-xs text-text-tertiary">{heir.asset?.toBase58?.() || heir.asset}</span>
+                  </span>
+                  <span className="text-text-primary font-medium font-mono">
+                    {heir.allocationValue?.toString?.() || heir.allocationValue}
+                  </span>
+                </div>
               </div>
-              {isTimerActive ? (
-                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      isExpired ? "bg-red-500 w-full" : "bg-green-500"
-                    }`}
-                    style={{
-                      width: isExpired
-                        ? "100%"
-                        : `${Math.max(
-                            0,
-                            Math.min(
-                              100,
-                              ((lastHeartbeat + inactivityPeriod - Math.floor(now / 1000)) /
-                                inactivityPeriod) *
-                                100
-                            )
-                          )}%`,
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-amber-400 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
-                </div>
-              )}
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Timeline / Activity */}
+      <Card className="mt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+            <Info className="w-4 h-4 text-sky-400" />
+          </div>
+          <h3 className="font-semibold text-text-primary">Atividade</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 shrink-0" />
+            <div>
+              <p className="text-sm text-text-primary font-medium">Vault criado</p>
+              <p className="text-xs text-text-tertiary">Endereço: {vaultAddress.slice(0, 12)}...</p>
+            </div>
+          </div>
+          {vaultBalance > 0 && (
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 rounded-full bg-accent-primary mt-2 shrink-0" />
+              <div>
+                <p className="text-sm text-text-primary font-medium">Saldo atual</p>
+                <p className="text-xs text-text-tertiary">{(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL</p>
+              </div>
             </div>
           )}
-
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-zinc-500">Dono</span>
-              <p className="font-mono text-xs text-black dark:text-white truncate">
-                {vault.owner?.toBase58?.() || vault.owner}
-              </p>
-            </div>
-            <div>
-              <span className="text-zinc-500">Seed</span>
-              <p className="text-black dark:text-white font-medium">
-                {vault.seed?.toString?.() || vault.seed}
-              </p>
-            </div>
-            <div>
-              <span className="text-zinc-500">Taxa Keeper</span>
-              <p className="text-black dark:text-white font-medium">
-                {(Number(vault.keeperFeeBps?.toString?.() || vault.keeperFeeBps) / 100).toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <span className="text-zinc-500">Gas Reserve</span>
-              <p className="text-black dark:text-white font-medium">
-                {((Number(vault.gasReserveLamports?.toString?.() || vault.gasReserveLamports)) / LAMPORTS_PER_SOL).toFixed(4)} SOL
-              </p>
-            </div>
-            <div>
-              <span className="text-zinc-500">Saldo Vault</span>
-              <p className="text-black dark:text-white font-medium">
-                {(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
-              </p>
-            </div>
-          </div>
         </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-600 dark:text-green-400">
-            {success}
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Deposit SOL */}
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-3">
-              Depositar SOL
-            </h3>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="Quantidade em SOL"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              />
-              <button
-                onClick={handleDeposit}
-                disabled={actionLoading === "deposit" || !depositAmount}
-                className="py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {actionLoading === "deposit" ? "..." : "Depositar"}
-              </button>
-            </div>
-          </div>
-
-          {/* Heartbeat */}
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-3">
-              Heartbeat
-            </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-              Reinicia o timer de inatividade. Garante que o vault permaneça ativo.
-            </p>
-            <button
-              onClick={handleHeartbeat}
-              disabled={actionLoading === "heartbeat"}
-              className="w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {actionLoading === "heartbeat" ? "Enviando..." : "Enviar Heartbeat"}
-            </button>
-          </div>
-
-          {/* Cancel */}
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-3">
-              Cancelar Vault
-            </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-              Devolve todos os fundos para o dono e fecha o vault.
-            </p>
-            <button
-              onClick={handleCancel}
-              disabled={actionLoading === "cancel"}
-              className="w-full py-2 px-4 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-            >
-              {actionLoading === "cancel" ? "Cancelando..." : "Cancelar Vault"}
-            </button>
-          </div>
-
-          {/* Claim */}
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-3">
-              Executar Claim
-            </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-3">
-              Distribui os ativos para os herdeiros. Só disponível após expiração.
-            </p>
-            <button
-              onClick={handleClaim}
-              disabled={actionLoading === "claim" || !isExpired}
-              className="w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {actionLoading === "claim" ? "Executando..." : "Executar Claim"}
-            </button>
-          </div>
-        </div>
-
-        {/* Heirs */}
-        {vault.heirs && vault.heirs.length > 0 && (
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-4">
-              Herdeiros ({vault.heirs.length})
-            </h3>
-            <div className="space-y-3">
-              {vault.heirs.map((heir: any, i: number) => (
-                <div
-                  key={i}
-                  className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-zinc-600 dark:text-zinc-400">
-                      {heir.wallet?.toBase58?.() || heir.wallet}
-                    </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
-                      {heir.allocationType?.percentage !== undefined ? "%" : "Fixo"}
-                    </span>
-                  </div>
-                  <p className="text-zinc-500 mt-1">
-                    Asset:{" "}
-                    <span className="font-mono text-xs">
-                      {heir.asset?.toBase58?.() || heir.asset}
-                    </span>
-                  </p>
-                  <p className="text-black dark:text-white font-medium mt-1">
-                    Valor: {heir.allocationValue?.toString?.() || heir.allocationValue}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      </Card>
     </div>
   );
 }

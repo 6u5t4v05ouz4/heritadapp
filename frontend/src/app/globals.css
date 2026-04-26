@@ -1,27 +1,129 @@
 @import "tailwindcss";
 @import "./wallet-adapter.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Base Colors */
+  --color-bg-base: #080C14;
+  --color-bg-surface: #0F1623;
+  --color-bg-elevated: #161F2E;
+  --color-bg-elevated-hover: #1E293B;
+
+  /* Borders */
+  --color-border-subtle: #1E293B;
+  --color-border-focus: #334155;
+
+  /* Text */
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-tertiary: #64748B;
+
+  /* Accents */
+  --color-accent-primary: #38BDF8;
+  --color-accent-glow: rgba(56, 189, 248, 0.15);
+  --color-accent-warm: #FBBF24;
+
+  /* Semantic */
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #FB7185;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: #080C14;
+  color: #F8FAFC;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #080C14;
+  color: #F8FAFC;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #080C14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Selection */
+::selection {
+  background: rgba(56, 189, 248, 0.2);
+  color: #F8FAFC;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Wallet adapter custom styles */
+.wallet-adapter-button {
+  border-radius: 12px !important;
+  height: 44px !important;
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  background: #161F2E !important;
+  color: #F8FAFC !important;
+  border: 1px solid #1E293B !important;
+  transition: all 200ms ease-out !important;
+}
+.wallet-adapter-button:hover {
+  background: #1E293B !important;
+  border-color: #334155 !important;
+}
+.wallet-adapter-button-trigger {
+  background: #161F2E !important;
+}
+.wallet-adapter-dropdown-list {
+  background: #0F1623 !important;
+  border: 1px solid #1E293B !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px -10px rgba(0,0,0,0.5) !important;
+}
+.wallet-adapter-dropdown-list-item {
+  color: #F8FAFC !important;
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+}
+.wallet-adapter-dropdown-list-item:hover {
+  background: #161F2E !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: #0F1623 !important;
+  border: 1px solid #1E293B !important;
+  border-radius: 16px !important;
+}
+.wallet-adapter-modal-title {
+  color: #F8FAFC !important;
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+}
+.wallet-adapter-modal-list {
+  margin: 0 !important;
+}
+.wallet-adapter-modal-list-more {
+  color: #94A3B8 !important;
+}
+.wallet-adapter-modal-button-close {
+  background: #161F2E !important;
+}
+.wallet-adapter-modal-button-close:hover {
+  background: #1E293B !important;
 }

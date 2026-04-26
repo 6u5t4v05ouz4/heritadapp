@@ -7,7 +7,26 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { PublicKey } from "@solana/web3.js";
 import Link from "next/link";
+import {
+  Clock,
+  Percent,
+  Fuel,
+  Hash,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  User,
+  Wallet,
+} from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import StepIndicator from "@/components/ui/StepIndicator";
+import Badge from "@/components/ui/Badge";
+import { useToast } from "@/hooks/useToast";
 
 interface HeirInput {
   wallet: string;
@@ -20,6 +39,7 @@ export default function CreateVaultPage() {
   const router = useRouter();
   const { connected } = useWallet();
   const { initializeVault } = useVault();
+  const { success, error: showError, ToastContainer } = useToast();
 
   const [step, setStep] = useState(1);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString());
@@ -31,6 +51,7 @@ export default function CreateVaultPage() {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
 
   const addHeir = () => {
     if (heirs.length >= 10) return;
@@ -46,6 +67,10 @@ export default function CreateVaultPage() {
     updated[index] = { ...updated[index], [field]: value };
     setHeirs(updated);
   };
+
+  const percentageSum = heirs
+    .filter((h) => h.allocationType === "percentage")
+    .reduce((sum, h) => sum + (Number(h.allocationValue) || 0), 0);
 
   const validateForm = (): string | null => {
     const minutes = Number(inactivityMinutes);
@@ -66,19 +91,13 @@ export default function CreateVaultPage() {
     if (heirs.length > 10) {
       return "Máximo de 10 herdeiros";
     }
-    
-    // Verificar duplicatas de wallet
-    const wallets = heirs.map(h => h.wallet);
+    const wallets = heirs.map((h) => h.wallet);
     if (new Set(wallets).size !== wallets.length) {
       return "Herdeiros não podem ter endereços duplicados";
     }
-    
-    // Verificar carteiras vazias
-    if (heirs.some(h => !h.wallet.trim())) {
+    if (heirs.some((h) => !h.wallet.trim())) {
       return "Todos os herdeiros devem ter um endereço de carteira";
     }
-    
-    // Validar soma de percentuais por asset = 10000 bps (100%)
     const percentageByAsset: Record<string, number> = {};
     for (const heir of heirs) {
       if (heir.allocationType === "percentage") {
@@ -94,29 +113,28 @@ export default function CreateVaultPage() {
         return `Asset ${asset.slice(0, 8)}...: soma dos percentuais deve ser exatamente 10000 bps (100%). Atual: ${sum}`;
       }
     }
-    
     return null;
   };
 
   const handleSubmit = async () => {
     setError("");
-    
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
+      showError(validationError);
       return;
     }
-    
+    if (!confirmed) {
+      setError("Você precisa confirmar que entende os riscos");
+      return;
+    }
     setLoading(true);
 
     try {
       const parsedHeirs = heirs.map((h) => ({
         wallet: h.wallet,
         asset: h.asset,
-        allocationType:
-          h.allocationType === "percentage"
-            ? ({ percentage: {} } as any)
-            : ({ fixedAmount: {} } as any),
+        allocationType: h.allocationType === "percentage" ? ({ percentage: {} } as any) : ({ fixedAmount: {} } as any),
         allocationValue: Number(h.allocationValue),
       }));
 
@@ -128,9 +146,12 @@ export default function CreateVaultPage() {
         Number(gasReserve)
       );
 
+      success("Vault criado com sucesso!");
       router.push(`/vaults/${vaultPDA.toBase58()}`);
     } catch (err: any) {
-      setError(err.message || "Erro ao criar vault");
+      const msg = err.message || "Erro ao criar vault";
+      setError(msg);
+      showError(msg);
     } finally {
       setLoading(false);
     }
@@ -138,312 +159,279 @@ export default function CreateVaultPage() {
 
   if (!connected) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
-        <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center max-w-md">
-          <h1 className="text-2xl font-bold text-black dark:text-white mb-4">
-            Criar Vault
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-            Conecte sua carteira para criar um novo cofre de herança
-          </p>
-          <ClientOnly fallback={
-            <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
-              Conectar Carteira
-            </button>
-          }>
-            <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
-          </ClientOnly>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
+        <PageHeader title="Criar Vault" description="Configure seu cofre de herança" />
+        <Card className="mt-8">
+          <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
+            <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
+              <Wallet className="w-8 h-8 text-text-tertiary" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <p className="text-sm text-text-secondary max-w-sm mb-6">
+              Conecte sua carteira para criar um novo cofre de herança digital.
+            </p>
+            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+              <WalletMultiButton />
+            </ClientOnly>
+          </div>
+        </Card>
       </div>
     );
   }
 
+  const steps = [
+    { number: 1, label: "Configuração" },
+    { number: 2, label: "Herdeiros" },
+    { number: 3, label: "Revisão" },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-black py-12 px-4">
-      <div className="w-full max-w-2xl flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-black dark:text-white">
-              Criar Vault
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-              Configure seu cofre de herança passo a passo
-            </p>
-          </div>
-          <Link
-            href="/vaults"
-            className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
-          >
-            ← Voltar
-          </Link>
-        </div>
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <ToastContainer />
+      <PageHeader title="Criar Vault" description="Configure seu cofre de herança passo a passo" backHref="/vaults" />
 
-        {/* Progress */}
-        <div className="flex gap-2">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`flex-1 h-2 rounded-full ${
-                s <= step
-                  ? "bg-zinc-900 dark:bg-zinc-100"
-                  : "bg-zinc-200 dark:bg-zinc-800"
-              }`}
+      <div className="mt-8">
+        <StepIndicator steps={steps} currentStep={step} />
+      </div>
+
+      {/* Step 1 */}
+      {step === 1 && (
+        <Card className="mt-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
+              <Hash className="w-5 h-5 text-accent-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Configuração Básica</h2>
+              <p className="text-xs text-text-tertiary">Parâmetros do seu vault</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Input
+              label="Seed (identificador único)"
+              type="number"
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+              helper="Permite criar múltiplos vaults com a mesma carteira"
+              icon={<Hash className="w-4 h-4" />}
             />
-          ))}
-        </div>
-
-        {/* Step 1: Configuração Básica */}
-        {step === 1 && (
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
-            <h2 className="text-xl font-semibold text-black dark:text-white">
-              Configuração Básica
-            </h2>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Seed (identificador único)
-              </label>
-              <input
-                type="number"
-                value={seed}
-                onChange={(e) => setSeed(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                Permite criar múltiplos vaults com a mesma carteira
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Período de Inatividade (minutos)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="525600"
-                value={inactivityMinutes}
-                onChange={(e) => setInactivityMinutes(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                Mínimo: 1 minuto | Máximo: 525.600 minutos (1 ano)
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Taxa do Keeper (basis points)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={keeperFeeBps}
-                onChange={(e) => setKeeperFeeBps(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                100 = 1% (máximo). Recompensa para quem executar o claim.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Reserva de Gas (SOL)
-              </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={gasReserve}
-                onChange={(e) => setGasReserve(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                Mínimo: 0.01 SOL. Reembolso para o keeper no heartbeat.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setStep(2)}
-              className="w-full py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
-            >
-              Continuar →
-            </button>
+            <Input
+              label="Período de Inatividade (minutos)"
+              type="number"
+              min="1"
+              max="525600"
+              value={inactivityMinutes}
+              onChange={(e) => setInactivityMinutes(e.target.value)}
+              helper="Mín: 1 min | Máx: 525.600 min (1 ano)"
+              icon={<Clock className="w-4 h-4" />}
+            />
+            <Input
+              label="Taxa do Keeper (basis points)"
+              type="number"
+              min="0"
+              max="100"
+              value={keeperFeeBps}
+              onChange={(e) => setKeeperFeeBps(e.target.value)}
+              helper="100 = 1%. Recompensa para quem executar o claim"
+              icon={<Percent className="w-4 h-4" />}
+            />
+            <Input
+              label="Reserva de Gas (SOL)"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={gasReserve}
+              onChange={(e) => setGasReserve(e.target.value)}
+              helper="Mín: 0.01 SOL. Reembolso para o keeper"
+              icon={<Fuel className="w-4 h-4" />}
+            />
           </div>
-        )}
 
-        {/* Step 2: Herdeiros */}
-        {step === 2 && (
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
-            <h2 className="text-xl font-semibold text-black dark:text-white">
-              Herdeiros ({heirs.length}/10)
-            </h2>
+          <div className="mt-6 flex justify-end">
+            <Button onClick={() => setStep(2)}>Continuar</Button>
+          </div>
+        </Card>
+      )}
 
+      {/* Step 2 */}
+      {step === 2 && (
+        <Card className="mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-warm/10 border border-accent-warm/20 flex items-center justify-center">
+                <User className="w-5 h-5 text-accent-warm" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">Herdeiros</h2>
+                <p className="text-xs text-text-tertiary">{heirs.length}/10 herdeiros</p>
+              </div>
+            </div>
+            <Badge variant={percentageSum === 10000 ? "active" : "waiting"}>
+              Total: {percentageSum} bps
+            </Badge>
+          </div>
+
+          <div className="space-y-4">
             {heirs.map((heir, index) => (
               <div
                 key={index}
-                className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-3"
+                className="p-4 rounded-xl border border-border-subtle bg-bg-elevated space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    Herdeiro #{index + 1}
-                  </span>
+                  <span className="text-sm font-medium text-text-secondary">Herdeiro #{index + 1}</span>
                   {heirs.length > 1 && (
                     <button
                       onClick={() => removeHeir(index)}
-                      className="text-xs text-red-500 hover:text-red-700"
+                      className="text-xs text-rose-400 hover:text-rose-300 transition-colors inline-flex items-center gap-1"
                     >
+                      <Trash2 className="w-3 h-3" />
                       Remover
                     </button>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                    Carteira do Herdeiro
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Endereço Solana..."
-                    value={heir.wallet}
-                    onChange={(e) => updateHeir(index, "wallet", e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
-                  />
-                </div>
+                <Input
+                  label="Carteira do Herdeiro"
+                  placeholder="Endereço Solana..."
+                  value={heir.wallet}
+                  onChange={(e) => updateHeir(index, "wallet", e.target.value)}
+                  icon={<Wallet className="w-4 h-4" />}
+                />
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                      Tipo
-                    </label>
+                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Tipo</label>
                     <select
                       value={heir.allocationType}
                       onChange={(e) => updateHeir(index, "allocationType", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
+                      className="w-full h-11 px-3 rounded-xl border border-border-subtle bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/30"
                     >
                       <option value="percentage">Percentual (%)</option>
                       <option value="fixed">Valor Fixo</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                      Valor
-                    </label>
-                    <input
-                      type="number"
-                      placeholder={heir.allocationType === "percentage" ? "10000 = 100%" : "Quantidade"}
-                      value={heir.allocationValue}
-                      onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-black dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500"
-                    />
-                  </div>
+                  <Input
+                    label="Valor"
+                    type="number"
+                    placeholder={heir.allocationType === "percentage" ? "10000 = 100%" : "Quantidade"}
+                    value={heir.allocationValue}
+                    onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
+                  />
                 </div>
               </div>
             ))}
-
-            {heirs.length < 10 && (
-              <button
-                onClick={addHeir}
-                className="w-full py-2 px-4 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors text-sm"
-              >
-                + Adicionar Herdeiro
-              </button>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(1)}
-                className="flex-1 py-2 px-4 rounded-lg border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                ← Voltar
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                className="flex-1 py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
-              >
-                Revisar →
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* Step 3: Revisão */}
-        {step === 3 && (
-          <div className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
-            <h2 className="text-xl font-semibold text-black dark:text-white">
+          {heirs.length < 10 && (
+            <button
+              onClick={addHeir}
+              className="mt-4 w-full py-3 px-4 rounded-xl border border-dashed border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-focus hover:bg-bg-elevated transition-all text-sm font-medium inline-flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Herdeiro
+            </button>
+          )}
+
+          {percentageSum !== 10000 && heirs.some((h) => h.allocationType === "percentage") && (
+            <div className="mt-4 flex items-center gap-2 text-xs text-amber-400">
+              <AlertCircle className="w-4 h-4" />
+              Total percentual: {percentageSum} bps — falta {10000 - percentageSum} bps para 100%
+            </div>
+          )}
+
+          <div className="mt-6 flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setStep(1)}>
+              Voltar
+            </Button>
+            <Button className="flex-1" onClick={() => setStep(3)}>
               Revisar
-            </h2>
+            </Button>
+          </div>
+        </Card>
+      )}
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-zinc-500">Seed</span>
-                <span className="font-mono text-black dark:text-white">{seed}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-zinc-500">Inatividade</span>
-                <span className="text-black dark:text-white">{inactivityMinutes} minutos</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-zinc-500">Taxa Keeper</span>
-                <span className="text-black dark:text-white">{Number(keeperFeeBps) / 100}%</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-zinc-500">Gas Reserve</span>
-                <span className="text-black dark:text-white">{gasReserve} SOL</span>
-              </div>
+      {/* Step 3 */}
+      {step === 3 && (
+        <Card className="mt-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-emerald-400" />
             </div>
-
             <div>
-              <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Herdeiros ({heirs.length})
-              </h3>
-              <div className="space-y-2">
-                {heirs.map((h, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm"
-                  >
-                    <p className="font-mono text-xs text-zinc-600 dark:text-zinc-400 truncate">
-                      {h.wallet || "(sem endereço)"}
-                    </p>
-                    <p className="text-zinc-500 mt-1">
-                      {h.allocationType === "percentage" ? "Percentual" : "Fixo"}:{" "}
-                      <span className="text-black dark:text-white font-medium">
-                        {h.allocationValue}
-                      </span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(2)}
-                disabled={loading}
-                className="flex-1 py-2 px-4 rounded-lg border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-              >
-                ← Voltar
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex-1 py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {loading ? "Criando..." : "Criar Vault"}
-              </button>
+              <h2 className="text-lg font-semibold text-text-primary">Revisar</h2>
+              <p className="text-xs text-text-tertiary">Confirme os dados antes de criar</p>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between py-2.5 border-b border-border-subtle">
+              <span className="text-text-secondary">Seed</span>
+              <span className="font-mono text-text-primary">{seed}</span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-border-subtle">
+              <span className="text-text-secondary">Inatividade</span>
+              <span className="text-text-primary">{inactivityMinutes} minutos</span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-border-subtle">
+              <span className="text-text-secondary">Taxa Keeper</span>
+              <span className="text-text-primary">{Number(keeperFeeBps) / 100}%</span>
+            </div>
+            <div className="flex justify-between py-2.5 border-b border-border-subtle">
+              <span className="text-text-secondary">Gas Reserve</span>
+              <span className="text-text-primary">{gasReserve} SOL</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-text-secondary mb-3">
+              Herdeiros ({heirs.length})
+            </h3>
+            <div className="space-y-2">
+              {heirs.map((h, i) => (
+                <div key={i} className="p-3 rounded-xl bg-bg-elevated border border-border-subtle text-sm">
+                  <p className="font-mono text-xs text-text-tertiary truncate">
+                    {h.wallet || "(sem endereço)"}
+                  </p>
+                  <p className="text-text-secondary mt-1">
+                    {h.allocationType === "percentage" ? "Percentual" : "Fixo"}:{" "}
+                    <span className="text-text-primary font-medium">{h.allocationValue}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <label className="mt-6 flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-border-subtle bg-bg-elevated text-accent-primary focus:ring-accent-primary/30"
+            />
+            <span className="text-sm text-text-secondary">
+              Li e entendo que os fundos depositados só poderão ser resgatados pelos herdeiros 
+              após o período de inatividade, e que cancelar o vault devolve os fundos para mim.
+            </span>
+          </label>
+
+          {error && (
+            <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="mt-6 flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setStep(2)} disabled={loading}>
+              Voltar
+            </Button>
+            <Button className="flex-1" onClick={handleSubmit} isLoading={loading} disabled={!confirmed}>
+              {loading ? "Criando..." : "Criar Vault"}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

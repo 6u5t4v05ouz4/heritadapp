@@ -1,12 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { useEffect, useState } from "react";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { Vault, Shield, Clock, TrendingUp } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
+import PageHeader from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
+import Skeleton from "@/components/ui/Skeleton";
+import EmptyState from "@/components/ui/EmptyState";
+import VaultCard from "@/components/vault/VaultCard";
+import Button from "@/components/ui/Button";
 
 interface VaultData {
   publicKey: PublicKey;
@@ -23,164 +30,164 @@ interface VaultData {
 
 export default function VaultsPage() {
   const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
   const { fetchVaultsByOwner } = useVault();
   const [vaults, setVaults] = useState<VaultData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalBalance, setTotalBalance] = useState(0);
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setVaults([]);
+      setTotalBalance(0);
       return;
     }
     setLoading(true);
     fetchVaultsByOwner(publicKey)
-      .then((data) => setVaults(data || []))
+      .then(async (data) => {
+        const vaultList = (data || []) as VaultData[];
+        setVaults(vaultList);
+        // Calculate total balance
+        let total = 0;
+        for (const v of vaultList) {
+          try {
+            const bal = await connection.getBalance(v.publicKey);
+            total += bal;
+          } catch {
+            // ignore
+          }
+        }
+        setTotalBalance(total);
+      })
       .finally(() => setLoading(false));
-  }, [connected, publicKey, fetchVaultsByOwner]);
+  }, [connected, publicKey, fetchVaultsByOwner, connection]);
 
-  const formatTimeRemaining = (lastHeartbeat: number, inactivityPeriod: number) => {
-    if (lastHeartbeat === 0) return "Aguardando depósito";
+  const nextExpiry = vaults.reduce((min, v) => {
+    const lastHb = Number(v.account.lastHeartbeat?.toString() || 0);
+    const period = Number(v.account.inactivityPeriod?.toString() || 0);
+    if (lastHb === 0) return min;
+    const expiry = lastHb + period;
+    if (min === 0 || expiry < min) return expiry;
+    return min;
+  }, 0);
+
+  const formatNextExpiry = () => {
+    if (nextExpiry === 0) return "—";
     const now = Math.floor(Date.now() / 1000);
-    const expiry = lastHeartbeat + inactivityPeriod;
-    const diff = expiry - now;
+    const diff = nextExpiry - now;
     if (diff <= 0) return "Expirado";
     const days = Math.floor(diff / 86400);
     const hours = Math.floor((diff % 86400) / 3600);
-    return `${days}d ${hours}h restantes`;
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
   };
 
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-black py-12 px-4">
-      <div className="w-full max-w-4xl flex flex-col gap-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-black dark:text-white">
-              Meus Vaults
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-              Gerencie seus cofres de herança
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <PageHeader
+        title="Meus Vaults"
+        description="Gerencie seus cofres de herança"
+        actionLabel="+ Novo Vault"
+        actionHref="/vaults/create"
+      />
+
+      {!connected && (
+        <Card className="mt-8">
+          <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
+            <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
+              <Shield className="w-8 h-8 text-text-tertiary" />
+            </div>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <p className="text-sm text-text-secondary max-w-sm mb-6">
+              Conecte sua carteira Solana para visualizar seus vaults de herança.
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            {connected && (
-              <Link
-                href="/vaults/create"
-                className="py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
-              >
-                + Novo Vault
-              </Link>
-            )}
-            <ClientOnly fallback={
-              <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
-                Conectar Carteira
-              </button>
-            }>
-              <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
+            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+              <WalletMultiButton />
             </ClientOnly>
           </div>
-        </div>
+        </Card>
+      )}
 
-        {!connected && (
-          <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-              Conecte sua carteira para ver seus vaults
-            </p>
-            <ClientOnly fallback={
-              <button className="wallet-adapter-button !bg-zinc-900 !text-white" disabled>
-                Conectar Carteira
-              </button>
-            }>
-              <WalletMultiButton className="!bg-zinc-900 !text-white hover:!bg-zinc-700 dark:!bg-zinc-100 dark:!text-black dark:hover:!bg-zinc-300" />
-            </ClientOnly>
-          </div>
-        )}
-
-        {connected && loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 animate-pulse"
-              >
-                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4 mb-3"></div>
-                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3"></div>
+      {connected && (
+        <>
+          {/* Stats */}
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card padding="default" className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center shrink-0">
+                <Vault className="w-5 h-5 text-accent-primary" />
               </div>
-            ))}
+              <div>
+                <p className="text-2xl font-bold text-text-primary font-mono">{vaults.length}</p>
+                <p className="text-xs text-text-tertiary">Total de vaults</p>
+              </div>
+            </Card>
+            <Card padding="default" className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-text-primary font-mono">
+                  {(totalBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
+                </p>
+                <p className="text-xs text-text-tertiary">Valor total protegido</p>
+              </div>
+            </Card>
+            <Card padding="default" className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-text-primary font-mono">{formatNextExpiry()}</p>
+                <p className="text-xs text-text-tertiary">Próximo vencimento</p>
+              </div>
+            </Card>
           </div>
-        )}
 
-        {connected && !loading && vaults.length === 0 && (
-          <div className="p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-center">
-            <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-              Você ainda não tem nenhum vault
-            </p>
-            <Link
-              href="/vaults/create"
-              className="inline-block py-2 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-medium hover:opacity-90 transition-opacity"
-            >
-              Criar meu primeiro Vault
-            </Link>
-          </div>
-        )}
+          {/* Loading */}
+          {loading && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <Card key={i} padding="default" className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-2 w-full rounded-full" />
+                  <div className="flex gap-3 pt-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-        {connected && !loading && vaults.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {vaults.map((vault) => (
-              <Link
-                key={vault.publicKey.toBase58()}
-                href={`/vaults/${vault.publicKey.toBase58()}`}
-                className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-black dark:text-white font-mono text-sm">
-                    {vault.publicKey.toBase58().slice(0, 8)}...
-                    {vault.publicKey.toBase58().slice(-8)}
-                  </h3>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      vault.account.status?.active
-                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                        : vault.account.status?.claimed
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                    }`}
-                  >
-                    {vault.account.status?.active
-                      ? "Ativo"
-                      : vault.account.status?.claimed
-                      ? "Resgatado"
-                      : "Cancelado"}
-                  </span>
-                </div>
-                <div className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  <p>
-                    Herdeiros:{" "}
-                    <span className="text-black dark:text-white font-medium">
-                      {vault.account.heirs?.length || 0}
-                    </span>
-                  </p>
-                  <p>
-                    Assets:{" "}
-                    <span className="text-black dark:text-white font-medium">
-                      {vault.account.assets?.length || 0}
-                    </span>
-                  </p>
-                  <p>
-                    Timer:{" "}
-                    <span className="text-black dark:text-white font-medium">
-                      {formatTimeRemaining(
-                        Number(vault.account.lastHeartbeat?.toString() || 0),
-                        Number(vault.account.inactivityPeriod?.toString() || 0)
-                      )}
-                    </span>
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+          {/* Empty state */}
+          {!loading && vaults.length === 0 && (
+            <Card className="mt-8">
+              <EmptyState
+                title="Nenhum vault criado ainda"
+                description="Crie seu primeiro vault de herança digital em poucos passos. Proteja seus ativos para o futuro."
+                actionLabel="Criar meu primeiro Vault"
+                actionHref="/vaults/create"
+                icon={<Shield className="w-8 h-8 text-accent-primary" />}
+              />
+            </Card>
+          )}
+
+          {/* Grid */}
+          {!loading && vaults.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {vaults.map((vault) => (
+                <VaultCard key={vault.publicKey.toBase58()} vault={vault} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
