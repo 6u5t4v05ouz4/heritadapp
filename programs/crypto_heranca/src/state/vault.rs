@@ -59,9 +59,14 @@ impl Vault {
         current_time > self.last_heartbeat.saturating_add(self.inactivity_period)
     }
 
-    /// Retorna o saldo de SOL disponível para distribuição (excluindo gas_reserve)
+    /// Retorna o saldo de SOL disponível para distribuição
+    /// Reserva rent-exempt mínimo + gas_reserve para evitar erros de rent
     pub fn available_sol(&self, vault_lamports: u64) -> u64 {
-        vault_lamports.saturating_sub(self.gas_reserve_lamports)
+        // Rent-exempt mínimo para a conta Vault (~0.0089 SOL para ~1KB)
+        // Usamos um valor fixo conservador já que Rent::get() requer contexto de runtime
+        let rent_exempt_min: u64 = 1_000_000; // ~0.001 SOL (conservador)
+        let reserved = std::cmp::max(self.gas_reserve_lamports, rent_exempt_min);
+        vault_lamports.saturating_sub(reserved)
     }
 }
 

@@ -210,26 +210,34 @@ export function useVault() {
     async (vaultPDA: PublicKey, heirs?: PublicKey[]) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
 
-      // Build accounts object dynamically - only include heirs that exist
+      // Anchor 0.32 sentinel: use program ID for absent optional accounts
+      const sentinel = program.programId;
+
+      // Build accounts object - Anchor JS client auto-converts IDL snake_case
+      // (heir_0) to camelCase (heir0), so we use camelCase here
       const accounts: any = {
         executor: publicKey,
         vault: vaultPDA,
-        token_program: TOKEN_PROGRAM_ID,
-        associated_token_program: ASSOCIATED_TOKEN_PROGRAM_ID,
-        system_program: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY,
       };
 
-      // Add ALL 10 heir slots (Anchor 0.32 requires all optional accounts)
+      // Add ALL 10 heir slots — use program ID as sentinel for absent heirs
       for (let i = 0; i < 10; i++) {
-        accounts[`heir${i}`] = heirs?.[i] || null;
+        accounts[`heir${i}`] = heirs?.[i] || sentinel;
       }
+
+      console.log("[CLAIM] Accounts passed to Anchor:", Object.fromEntries(
+        Object.entries(accounts).map(([k, v]) => [k, (v as PublicKey)?.toBase58?.() || v])
+      ));
 
       const tx = await retryRpc(() =>
         (program as any).methods
           .claim()
           .accounts(accounts)
-          .rpc({ skipPreflight: true, commitment: "confirmed" })
+          .rpc({ commitment: "confirmed" })
       );
 
       return tx;

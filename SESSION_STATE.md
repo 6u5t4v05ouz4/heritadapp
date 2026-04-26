@@ -1,78 +1,88 @@
 # Session State
 
-> Last updated: 2026-04-24T18:00:00Z
+> Last updated: 2026-04-24T19:00:00Z
 > Session started: 2026-04-24
 
 ## Current Task
-Frontend do Crypto-Heranca com todas as páginas principais implementadas. Próximo passo: componentes reutilizáveis, toasts/notificações, e integração com Supabase no frontend.
+**Erro no claim do vault:** `SendTransactionError: Unknown action 'undefined'`
+
+O usuário vai reiniciar o PC. Na próxima sessão, precisamos resolver este erro.
 
 ## What Was Done
-- [x] Criado `frontend/src/lib/anchor.ts` — configuração do programa Anchor com Program ID da devnet
-- [x] Copiado IDL (`crypto_heranca.json`) para `frontend/src/lib/idl/`
-- [x] Criado `frontend/src/app/providers.tsx` — WalletAdapter (Phantom + Solflare), ConnectionProvider, QueryClientProvider
-- [x] Atualizado `frontend/src/app/layout.tsx` — integrado AppProviders, metadados em pt-BR, fonte DM Sans via link
-- [x] Criado `frontend/src/hooks/useProgram.ts` — hook para acessar o programa Anchor com provider conectado
-- [x] Criado `frontend/src/hooks/useVault.ts` — hook completo para interagir com o programa
-- [x] Atualizado `frontend/src/app/page.tsx` — landing page com WalletMultiButton e links para /vaults e /vaults/create
-- [x] **NOVO:** Criado `frontend/src/app/vaults/page.tsx` — lista de vaults do usuário com cards, status, timer, skeletons
-- [x] **NOVO:** Criado `frontend/src/app/vaults/create/page.tsx` — wizard de 3 passos (config → herdeiros → revisão) para criar vault
-- [x] **NOVO:** Criado `frontend/src/app/vaults/[address]/page.tsx` — detalhes do vault com: timer visual, barra de progresso, ações (depositar SOL, heartbeat, cancelar, claim), lista de herdeiros
-- [x] **NOVO:** Criado `frontend/src/app/wallet-adapter.css` — CSS do wallet adapter sem @import problemático
-- [x] Build do frontend passando sem erros (`npm run build`)
-- [x] Projeto commitado e pushado para GitHub (https://github.com/6u5t4v05ouz4/heritadapp)
+- [x] Contrato deployado na devnet com timer de 60 segundos (WSL)
+- [x] Frontend com todas as páginas (landing, vaults list, create, detail)
+- [x] Timer atualizando em tempo real (a cada 1 segundo)
+- [x] Saldo do vault sendo buscado on-chain
+- [x] Retry automático em todas as transações
+- [x] Claim passando herdeiros corretamente (camelCase heir0...heir9)
+- [x] Build do frontend passando sem erros
+- [x] Deploy de SOL funcionando (com notificação verde)
+
+## Active Problem / Blocker
+**Claim falha com erro:**
+```
+SendTransactionError: Unknown action 'undefined'
+```
+
+### Contexto do erro:
+- O vault foi criado com sucesso
+- SOL foi depositado com sucesso
+- Timer expirou (3 minutos)
+- Ao clicar "Executar Claim", dá erro `Unknown action 'undefined'`
+- O erro vem do retryRpc → claim → handleClaim
+- Não é mais "Account `heir0` not provided" (isso foi resolvido!)
+
+### O que já tentamos para o claim:
+1. ❌ Passar heirs via `.remainingAccounts()` → "heir0 not provided"
+2. ❌ Passar heirs como `heir_0` (snake_case) → "heir0 not provided"
+3. ❌ Passar heirs como `heir0` (camelCase) → "heir2 not provided" (faltavam os outros slots)
+4. ❌ Passar TODOS os 10 slots (heir0...heir9) com null → "Unknown action 'undefined'"
+
+### Diagnóstico atual:
+O erro `Unknown action 'undefined'` pode ser:
+1. **Erro do Anchor 0.32 com `skipPreflight: true`** - O skipPreflight pode estar causando erro de parsing
+2. **Transação malformada** - Algum account ou dado está incorreto
+3. **Erro da wallet Phantom** - A extensão pode estar rejeitando a transação
 
 ## What's Pending / Next Steps
-1. **Criar componentes reutilizáveis:**
-   - `components/VaultCard.tsx` — extrair card da lista de vaults
-   - `components/HeirForm.tsx` — extrair formulário de herdeiros
-   - `components/DepositForm.tsx` — extrair formulário de depósito
-2. **Adicionar toasts/notificações:**
-   - Instalar `sonner` ou `react-hot-toast`
-   - Substituir os estados inline de error/success nas páginas
-3. **Integrar Supabase no frontend:**
-   - Criar `lib/supabase.ts` com cliente Supabase
-   - Adicionar queries para dados off-chain (perfil, notificações)
-4. **Melhorar UX:**
-   - Loading skeletons mais elaborados
-   - Empty states
-   - Modal de confirmação para ações críticas (cancel, claim)
-5. **Validações no cliente:**
-   - Validar endereços Solana antes de submeter
-   - Validar soma de percentuais = 100%
-   - Preview de transação antes de assinar
+1. **URGENTE: Resolver erro `Unknown action 'undefined'` no claim**
+   - Arquivo: `frontend/src/hooks/useVault.ts` (função `claim`)
+   - Sugestão: Remover `skipPreflight: true` temporariamente para ver o erro real
+   - Ou adicionar `.simulate()` antes de `.rpc()` para debugar
+   - Ou tentar com wallet Solflare em vez de Phantom
+
+2. **Testar se o claim funciona após correção**
+   - Criar vault com 2 minutos
+   - Depositar SOL
+   - Esperar expirar
+   - Executar claim
+
+3. **Se claim funcionar:**
+   - Testar distribuição para múltiplos herdeiros
+   - Verificar se keeper fee é pago
+   - Verificar se gas reserve é reembolsado
+
+4. **Depois dos testes:**
+   - Voltar contrato para 30 dias no WSL
+   - Rebuildar e redeployar na devnet
+   - Fazer deploy em produção (Vercel)
 
 ## Key Decisions & Rationale
-- **Anchor Program constructor**: Na versão 0.32.1, usamos `new Program(idl, provider)` em vez de `new Program(idl, programId, provider)` porque o IDL já contém o `address` e o TypeScript da nova versão espera provider como segundo arg no overload de 2 parâmetros.
-- **Wallet adapter CSS**: Copiamos o CSS do pacote para um arquivo local (`wallet-adapter.css`) sem o `@import` de fonte problemático, e carregamos a fonte via `<link>` no `<head>` do layout. Isso resolve o erro de parsing do Turbopack.
-- **Hooks separados**: `useProgram` cuida da conexão com Anchor; `useVault` cuida das instruções do programa. Separação de responsabilidades facilita testes.
-- **Wizard em 3 passos**: A criação de vault é dividida em configuração básica → herdeiros → revisão. Isso torna o formulário menos intimidador e permite validação progressiva.
-
-## Active Problems / Blockers
-- Nenhum blocker ativo. Build está verde.
-
-## Architecture Context
-- Frontend: Next.js 16 + React 19 + Tailwind CSS v4 + TypeScript
-- Estado blockchain: Anchor 0.32.1 + Wallet Adapter + TanStack Query
-- Estado off-chain: Supabase (configurado no package.json mas não implementado ainda no frontend)
-- Programa Solana: crypto_heranca na devnet — vaults com heartbeat, herdeiros, múltiplos assets
+- **Timer em minutos:** Para facilitar testes, o frontend aceita minutos (mínimo 1)
+- **Contrato com 60s:** Deploy temporário na devnet para testar claim rapidamente
+- **skipPreflight:** Adicionado para evitar "transaction already processed", mas pode estar causando outros problemas
+- **Retry com backoff:** 3 tentativas com espera crescente (1s, 2s, 3s)
 
 ## Files Modified / Created
-- `frontend/src/lib/anchor.ts` — novo
-- `frontend/src/lib/idl/crypto_heranca.json` — copiado do keeper
-- `frontend/src/app/providers.tsx` — novo
-- `frontend/src/app/layout.tsx` — atualizado com providers, metadados, fonte DM Sans
-- `frontend/src/app/globals.css` — importa wallet-adapter.css local
-- `frontend/src/app/wallet-adapter.css` — novo (CSS do wallet adapter sem @import problemático)
-- `frontend/src/hooks/useProgram.ts` — novo
-- `frontend/src/hooks/useVault.ts` — novo
-- `frontend/src/app/page.tsx` — landing page com links para vaults
-- `frontend/src/app/vaults/page.tsx` — lista de vaults
-- `frontend/src/app/vaults/create/page.tsx` — wizard de criação
-- `frontend/src/app/vaults/[address]/page.tsx` — detalhes e ações do vault
-- `.gitignore` — criado na raiz do projeto
-- `SESSION_STATE.md` — este arquivo
+- `frontend/src/hooks/useVault.ts` - hook principal, função claim com retry
+- `frontend/src/app/vaults/[address]/page.tsx` - página de detalhes do vault
+- `frontend/src/components/ClientOnly.tsx` - componente para evitar hydration mismatch
+- `programs/crypto_heranca/src/state/vault.rs` - MIN_INACTIVITY_PERIOD = 60s (WSL)
+- `deploy-devnet.sh` - script de deploy no WSL
 
 ## Important Context
-- Usuário perdeu sessão anterior. Agora a infraestrutura base e as páginas principais do frontend estão completas.
-- Próximo passo sugerido: implementar componentes reutilizáveis e toasts para melhorar a UX.
-- Repositório GitHub: https://github.com/6u5t4v05ouz4/heritadapp
+- Repositório: https://github.com/6u5t4v05ouz4/heritadapp
+- Program ID devnet: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
+- WSL path: `~/crypto-heranca-build`
+- O claim PRECISA de herdeiros passados corretamente (heir0...heir9, camelCase, todos os 10 slots)
+- O erro `Unknown action 'undefined'` é NOVO - precisa investigar a causa raiz

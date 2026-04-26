@@ -46,3 +46,7 @@ next-env.d.ts
 # Misc
 .vercel
 *.pem
+
+# md files
+*.md
+!/SESSION_STATE.md

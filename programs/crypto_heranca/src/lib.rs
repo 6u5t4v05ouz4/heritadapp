@@ -94,7 +94,6 @@ pub mod crypto_heranca {
         if available_sol > 0 {
             let heirs = vault.heirs.clone();
             let keeper_fee_bps = vault.keeper_fee_bps;
-            let system_program_info = ctx.accounts.system_program.to_account_info();
             
             let sol_heirs_indices: Vec<usize> = heirs.iter()
                 .enumerate()
@@ -160,82 +159,56 @@ pub mod crypto_heranca {
                 }
 
                 let vault_key = vault.key();
-                let vault_bump = vault.bump;
-                let vault_owner = vault.owner;
-                let vault_seed = vault.seed;
 
-                for (heir_idx, amount) in distributions {
-                    if amount > 0 {
-                        let heir = &heirs[heir_idx];
-                        let heir_account = heir_accounts[heir_idx].clone();
+                // Use direct lamport manipulation instead of system_instruction::transfer
+                // PDA accounts with data cannot use system transfer ("from must not carry data")
+                for (heir_idx, amount) in &distributions {
+                    if *amount > 0 {
+                        let heir = &heirs[*heir_idx];
+                        let heir_account = heir_accounts[*heir_idx].clone();
                         
-                        let ix = system_instruction::transfer(
-                            &vault_key,
-                            heir_account.key,
-                            amount,
-                        );
-                        let seeds = &[
-                            b"vault",
-                            vault_owner.as_ref(),
-                            &vault_seed.to_le_bytes(),
-                            &[vault_bump],
-                        ];
-                        let signer_seeds = &[&seeds[..]];
-                        
-                        program::invoke_signed(
-                            &ix,
-                            &[heir_account, system_program_info.clone()],
-                            signer_seeds,
-                        )?;
+                        **vault.to_account_info().try_borrow_mut_lamports()? = vault
+                            .to_account_info().lamports()
+                            .checked_sub(*amount)
+                            .ok_or(CryptoHerancaError::MathOverflow)?;
+                        **heir_account.try_borrow_mut_lamports()? = heir_account
+                            .lamports()
+                            .checked_add(*amount)
+                            .ok_or(CryptoHerancaError::MathOverflow)?;
                         
                         emit!(ClaimExecuted {
                             vault_address: vault_key,
                             asset: SYSTEM_PROGRAM_ID,
-                            amount,
+                            amount: *amount,
                             heir: heir.wallet,
                             keeper: executor.key(),
                         });
                     }
                 }
 
+                // Keeper fee — also via direct lamport manipulation
                 if keeper_fee > 0 {
-                    let ix = system_instruction::transfer(
-                        &vault_key,
-                        executor.key,
-                        keeper_fee,
-                    );
-                    let seeds = &[
-                        b"vault",
-                        vault_owner.as_ref(),
-                        &vault_seed.to_le_bytes(),
-                        &[vault_bump],
-                    ];
-                    let signer_seeds = &[&seeds[..]];
-                    
-                    program::invoke_signed(
-                        &ix,
-                        &[executor.to_account_info(), system_program_info.clone()],
-                        signer_seeds,
-                    )?;
+                    **vault.to_account_info().try_borrow_mut_lamports()? = vault
+                        .to_account_info().lamports()
+                        .checked_sub(keeper_fee)
+                        .ok_or(CryptoHerancaError::MathOverflow)?;
+                    **executor.to_account_info().try_borrow_mut_lamports()? = executor
+                        .to_account_info().lamports()
+                        .checked_add(keeper_fee)
+                        .ok_or(CryptoHerancaError::MathOverflow)?;
                 }
             }
         }
 
-        if vault.gas_reserve_lamports > 0 {
-            let gas_reimburse = std::cmp::min(
-                vault.gas_reserve_lamports,
-                vault.to_account_info().lamports().saturating_sub(1),
-            );
-            if gas_reimburse > 0 {
-                **vault.to_account_info().try_borrow_mut_lamports()? = vault
-                    .to_account_info().lamports()
-                    .checked_sub(gas_reimburse)
-                    .ok_or(CryptoHerancaError::MathOverflow)?;
-                **executor.to_account_info().try_borrow_mut_lamports()? = executor
-                    .to_account_info().lamports()
-                    .checked_add(gas_reimburse)
-                    .ok_or(CryptoHerancaError::MathOverflow)?;
-            }
+        // Close the vault — transfer ALL remaining lamports (including rent + gas_reserve)
+        // to the executor. The vault is no longer needed after claim.
+        let remaining = vault.to_account_info().lamports();
+        if remaining > 0 {
+            **vault.to_account_info().try_borrow_mut_lamports()? = 0;
+            **executor.to_account_info().try_borrow_mut_lamports()? = executor
+                .to_account_info().lamports()
+                .checked_add(remaining)
+                .ok_or(CryptoHerancaError::MathOverflow)?;
         }
 
         vault.status = VaultStatus::Claimed;
