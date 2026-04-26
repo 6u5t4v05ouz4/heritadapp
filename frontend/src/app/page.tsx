@@ -29,7 +29,7 @@ export default function Home() {
           </h1>
 
           <p className="mt-5 text-lg text-text-secondary max-w-xl leading-relaxed">
-            HERITA is an on-chain inheritance protocol on Solana. Protect your digital assets 
+            HERITA is an on-chain inheritance protocol on Solana. Protect your digital assets
             and ensure your loved ones have access when needed.
           </p>
 
@@ -44,17 +44,19 @@ export default function Home() {
               <WalletMultiButton />
             </ClientOnly>
             {connected && (
-              <Link href="/vaults/create">
-                <Button variant="primary" size="lg">
-                  Create my Vault
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+              <Link
+                href="/vaults/create"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
+              >
+                Create my Vault
+                <ArrowRight className="w-4 h-4" />
               </Link>
             )}
-            <a href="#how-it-works">
-              <Button variant="ghost" size="lg">
-                Explore Protocol
-              </Button>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all duration-200"
+            >
+              Explore Protocol
             </a>
           </div>
 
@@ -154,7 +156,7 @@ export default function Home() {
             Ready to protect your legacy?
           </h2>
           <p className="text-text-secondary mb-8 max-w-lg mx-auto">
-            Create your first digital inheritance vault in minutes. 
+            Create your first digital inheritance vault in minutes.
             No setup fees, only Solana network gas.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -162,11 +164,12 @@ export default function Home() {
               <WalletMultiButton />
             </ClientOnly>
             {connected && (
-              <Link href="/vaults/create">
-                <Button variant="primary" size="lg">
-                  Create my Vault
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+              <Link
+                href="/vaults/create"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
+              >
+                Create my Vault
+                <ArrowRight className="w-4 h-4" />
               </Link>
             )}
           </div>
