@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Shield, Clock, Users, Coins, ArrowRight, ChevronDown } from "lucide-react";
+import { Shield, Clock, Users, Coins, ArrowRight } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -19,25 +19,25 @@ export default function Home() {
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 flex flex-col items-center text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-accent-primary text-xs font-medium mb-6">
             <Shield className="w-3.5 h-3.5" />
-            Protocolo na Devnet
+            Devnet Protocol
           </div>
 
           <h1 className="text-4xl md:text-6xl font-extrabold text-text-primary tracking-tight leading-[1.1] max-w-3xl">
-            Seu legado digital,
+            Your digital legacy,
             <br />
-            <span className="text-accent-primary">protegido para sempre</span>
+            <span className="text-accent-primary">protected forever</span>
           </h1>
 
           <p className="mt-5 text-lg text-text-secondary max-w-xl leading-relaxed">
-            HERITA é um protocolo de herança on-chain na Solana. Proteja seus ativos digitais 
-            e garanta que seus entes queridos tenham acesso quando necessário.
+            HERITA is an on-chain inheritance protocol on Solana. Protect your digital assets 
+            and ensure your loved ones have access when needed.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
             <ClientOnly
               fallback={
                 <Button variant="primary" size="lg" disabled>
-                  Conectar Carteira
+                  Connect Wallet
                 </Button>
               }
             >
@@ -46,14 +46,14 @@ export default function Home() {
             {connected && (
               <Link href="/vaults/create">
                 <Button variant="primary" size="lg">
-                  Criar meu Vault
+                  Create my Vault
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
             )}
-            <a href="#como-funciona">
+            <a href="#how-it-works">
               <Button variant="ghost" size="lg">
-                Explorar Protocolo
+                Explore Protocol
               </Button>
             </a>
           </div>
@@ -72,7 +72,7 @@ export default function Home() {
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-text-primary">Self-custody</p>
-                <p className="text-xs text-text-tertiary">Você mantém o controle</p>
+                <p className="text-xs text-text-tertiary">You stay in control</p>
               </div>
             </Card>
             <Card padding="default" className="flex items-center gap-3">
@@ -80,8 +80,8 @@ export default function Home() {
                 <Users className="w-4 h-4 text-sky-400" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">Multi-beneficiário</p>
-                <p className="text-xs text-text-tertiary">Até 10 herdeiros</p>
+                <p className="text-sm font-semibold text-text-primary">Multi-heir</p>
+                <p className="text-xs text-text-tertiary">Up to 10 heirs</p>
               </div>
             </Card>
             <Card padding="default" className="flex items-center gap-3">
@@ -89,20 +89,20 @@ export default function Home() {
                 <Clock className="w-4 h-4 text-amber-400" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">Timer inteligente</p>
-                <p className="text-xs text-text-tertiary">Heartbeat on-chain</p>
+                <p className="text-sm font-semibold text-text-primary">Smart timer</p>
+                <p className="text-xs text-text-tertiary">On-chain heartbeat</p>
               </div>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* Como funciona */}
-      <section id="como-funciona" className="py-16 md:py-24">
+      {/* How it works */}
+      <section id="how-it-works" className="py-16 md:py-24">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-text-primary">Como funciona</h2>
-            <p className="mt-2 text-text-secondary">Quatro passos para proteger seu legado</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-text-primary">How it works</h2>
+            <p className="mt-2 text-text-secondary">Four steps to protect your legacy</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -110,26 +110,26 @@ export default function Home() {
               {
                 step: "01",
                 icon: <Shield className="w-5 h-5 text-accent-primary" />,
-                title: "Conecte sua carteira",
-                desc: "Use Phantom, Solflare ou outra carteira compatível com a Solana.",
+                title: "Connect your wallet",
+                desc: "Use Phantom, Solflare, or any Solana-compatible wallet.",
               },
               {
                 step: "02",
                 icon: <Users className="w-5 h-5 text-accent-warm" />,
-                title: "Configure herdeiros",
-                desc: "Adicione endereços de carteira e defina a alocação de ativos.",
+                title: "Set up heirs",
+                desc: "Add wallet addresses and define asset allocation.",
               },
               {
                 step: "03",
                 icon: <Coins className="w-5 h-5 text-emerald-400" />,
-                title: "Deposite ativos",
-                desc: "Envie SOL ou tokens para o vault. Eles ficam seguros on-chain.",
+                title: "Deposit assets",
+                desc: "Send SOL or tokens to the vault. They stay safe on-chain.",
               },
               {
                 step: "04",
                 icon: <Clock className="w-5 h-5 text-sky-400" />,
-                title: "Herdeiros resgatam",
-                desc: "Se houver inatividade, os herdeiros podem executar o claim.",
+                title: "Heirs claim",
+                desc: "If inactive, heirs can execute the claim.",
               },
             ].map((item) => (
               <Card key={item.step} padding="lg" className="relative">
@@ -151,20 +151,20 @@ export default function Home() {
       <section className="py-16 md:py-24 border-t border-border-subtle">
         <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
-            Pronto para proteger seu legado?
+            Ready to protect your legacy?
           </h2>
           <p className="text-text-secondary mb-8 max-w-lg mx-auto">
-            Crie seu primeiro vault de herança digital em poucos minutos. 
-            Sem taxas de setup, apenas gas da rede Solana.
+            Create your first digital inheritance vault in minutes. 
+            No setup fees, only Solana network gas.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <ClientOnly fallback={<Button variant="primary" size="lg" disabled>Conectar Carteira</Button>}>
+            <ClientOnly fallback={<Button variant="primary" size="lg" disabled>Connect Wallet</Button>}>
               <WalletMultiButton />
             </ClientOnly>
             {connected && (
               <Link href="/vaults/create">
                 <Button variant="primary" size="lg">
-                  Criar meu Vault
+                  Create my Vault
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -181,7 +181,7 @@ export default function Home() {
             <span className="text-sm font-semibold text-text-tertiary">HERITA</span>
           </div>
           <p className="text-xs text-text-tertiary">
-            Protocolo experimental na Devnet. Use por sua conta e risco.
+            Experimental protocol on Devnet. Use at your own risk.
           </p>
         </div>
       </footer>

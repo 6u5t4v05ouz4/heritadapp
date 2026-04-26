@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HERITA — Herança Digital na Solana",
-  description: "Protocolo de herança digital on-chain. Proteja seu legado com smart contracts na Solana.",
+  title: "HERITA — Digital Legacy on Solana",
+  description: "On-chain digital legacy protocol. Protect your legacy with smart contracts on Solana.",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="pt-BR"
+      lang="en-US"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg-base text-text-primary">

@@ -47,7 +47,6 @@ export default function VaultsPage() {
       .then(async (data) => {
         const vaultList = (data || []) as VaultData[];
         setVaults(vaultList);
-        // Calculate total balance
         let total = 0;
         for (const v of vaultList) {
           try {
@@ -75,7 +74,7 @@ export default function VaultsPage() {
     if (nextExpiry === 0) return "—";
     const now = Math.floor(Date.now() / 1000);
     const diff = nextExpiry - now;
-    if (diff <= 0) return "Expirado";
+    if (diff <= 0) return "Expired";
     const days = Math.floor(diff / 86400);
     const hours = Math.floor((diff % 86400) / 3600);
     if (days > 0) return `${days}d ${hours}h`;
@@ -85,9 +84,9 @@ export default function VaultsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
       <PageHeader
-        title="Meus Vaults"
-        description="Gerencie seus cofres de herança"
-        actionLabel="+ Novo Vault"
+        title="My Vaults"
+        description="Manage your inheritance vaults"
+        actionLabel="+ New Vault"
         actionHref="/vaults/create"
       />
 
@@ -97,11 +96,11 @@ export default function VaultsPage() {
             <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
               <Shield className="w-8 h-8 text-text-tertiary" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Connect your wallet</h3>
             <p className="text-sm text-text-secondary max-w-sm mb-6">
-              Conecte sua carteira Solana para visualizar seus vaults de herança.
+              Connect your Solana wallet to view your inheritance vaults.
             </p>
-            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+            <ClientOnly fallback={<Button disabled>Connect Wallet</Button>}>
               <WalletMultiButton />
             </ClientOnly>
           </div>
@@ -118,7 +117,7 @@ export default function VaultsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-text-primary font-mono">{vaults.length}</p>
-                <p className="text-xs text-text-tertiary">Total de vaults</p>
+                <p className="text-xs text-text-tertiary">Total vaults</p>
               </div>
             </Card>
             <Card padding="default" className="flex items-center gap-4">
@@ -129,7 +128,7 @@ export default function VaultsPage() {
                 <p className="text-2xl font-bold text-text-primary font-mono">
                   {(totalBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
                 </p>
-                <p className="text-xs text-text-tertiary">Valor total protegido</p>
+                <p className="text-xs text-text-tertiary">Total protected value</p>
               </div>
             </Card>
             <Card padding="default" className="flex items-center gap-4">
@@ -138,7 +137,7 @@ export default function VaultsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-text-primary font-mono">{formatNextExpiry()}</p>
-                <p className="text-xs text-text-tertiary">Próximo vencimento</p>
+                <p className="text-xs text-text-tertiary">Next expiration</p>
               </div>
             </Card>
           </div>
@@ -169,9 +168,9 @@ export default function VaultsPage() {
           {!loading && vaults.length === 0 && (
             <Card className="mt-8">
               <EmptyState
-                title="Nenhum vault criado ainda"
-                description="Crie seu primeiro vault de herança digital em poucos passos. Proteja seus ativos para o futuro."
-                actionLabel="Criar meu primeiro Vault"
+                title="No vault created yet"
+                description="Create your first digital inheritance vault in a few steps. Protect your assets for the future."
+                actionLabel="Create my first Vault"
                 actionHref="/vaults/create"
                 icon={<Shield className="w-8 h-8 text-accent-primary" />}
               />

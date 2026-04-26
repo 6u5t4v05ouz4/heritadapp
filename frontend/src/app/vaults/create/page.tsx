@@ -75,42 +75,42 @@ export default function CreateVaultPage() {
   const validateForm = (): string | null => {
     const minutes = Number(inactivityMinutes);
     if (minutes < 1 || minutes > 525600) {
-      return "Período de inatividade deve estar entre 1 minuto e 525.600 minutos (1 ano)";
+      return "Inactivity period must be between 1 minute and 525,600 minutes (1 year)";
     }
     const fee = Number(keeperFeeBps);
     if (fee < 0 || fee > 100) {
-      return "Taxa do keeper deve estar entre 0 e 100 basis points (1%)";
+      return "Keeper fee must be between 0 and 100 basis points (1%)";
     }
     const gas = Number(gasReserve);
     if (gas < 0.01) {
-      return "Reserva de gas mínima é 0.01 SOL";
+      return "Minimum gas reserve is 0.01 SOL";
     }
     if (heirs.length === 0) {
-      return "Adicione pelo menos um herdeiro";
+      return "Add at least one heir";
     }
     if (heirs.length > 10) {
-      return "Máximo de 10 herdeiros";
+      return "Maximum of 10 heirs";
     }
     const wallets = heirs.map((h) => h.wallet);
     if (new Set(wallets).size !== wallets.length) {
-      return "Herdeiros não podem ter endereços duplicados";
+      return "Heirs cannot have duplicate addresses";
     }
     if (heirs.some((h) => !h.wallet.trim())) {
-      return "Todos os herdeiros devem ter um endereço de carteira";
+      return "All heirs must have a wallet address";
     }
     const percentageByAsset: Record<string, number> = {};
     for (const heir of heirs) {
       if (heir.allocationType === "percentage") {
         const val = Number(heir.allocationValue);
         if (isNaN(val) || val <= 0) {
-          return `Herdeiro ${heirs.indexOf(heir) + 1} tem alocação percentual inválida`;
+          return `Heir ${heirs.indexOf(heir) + 1} has invalid percentage allocation`;
         }
         percentageByAsset[heir.asset] = (percentageByAsset[heir.asset] || 0) + val;
       }
     }
     for (const [asset, sum] of Object.entries(percentageByAsset)) {
       if (sum !== 10000) {
-        return `Asset ${asset.slice(0, 8)}...: soma dos percentuais deve ser exatamente 10000 bps (100%). Atual: ${sum}`;
+        return `Asset ${asset.slice(0, 8)}...: percentage sum must be exactly 10000 bps (100%). Current: ${sum}`;
       }
     }
     return null;
@@ -125,7 +125,7 @@ export default function CreateVaultPage() {
       return;
     }
     if (!confirmed) {
-      setError("Você precisa confirmar que entende os riscos");
+      setError("You need to confirm you understand the risks");
       return;
     }
     setLoading(true);
@@ -146,10 +146,10 @@ export default function CreateVaultPage() {
         Number(gasReserve)
       );
 
-      success("Vault criado com sucesso!");
+      success("Vault created successfully!");
       router.push(`/vaults/${vaultPDA.toBase58()}`);
     } catch (err: any) {
-      const msg = err.message || "Erro ao criar vault";
+      const msg = err.message || "Error creating vault";
       setError(msg);
       showError(msg);
     } finally {
@@ -160,17 +160,17 @@ export default function CreateVaultPage() {
   if (!connected) {
     return (
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader title="Criar Vault" description="Configure seu cofre de herança" />
+        <PageHeader title="Create Vault" description="Configure your inheritance vault" />
         <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
               <Wallet className="w-8 h-8 text-text-tertiary" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Connect your wallet</h3>
             <p className="text-sm text-text-secondary max-w-sm mb-6">
-              Conecte sua carteira para criar um novo cofre de herança digital.
+              Connect your wallet to create a new digital inheritance vault.
             </p>
-            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+            <ClientOnly fallback={<Button disabled>Connect Wallet</Button>}>
               <WalletMultiButton />
             </ClientOnly>
           </div>
@@ -180,15 +180,15 @@ export default function CreateVaultPage() {
   }
 
   const steps = [
-    { number: 1, label: "Configuração" },
-    { number: 2, label: "Herdeiros" },
-    { number: 3, label: "Revisão" },
+    { number: 1, label: "Configuration" },
+    { number: 2, label: "Heirs" },
+    { number: 3, label: "Review" },
   ];
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
       <ToastContainer />
-      <PageHeader title="Criar Vault" description="Configure seu cofre de herança passo a passo" backHref="/vaults" />
+      <PageHeader title="Create Vault" description="Configure your inheritance vault step by step" backHref="/vaults" />
 
       <div className="mt-8">
         <StepIndicator steps={steps} currentStep={step} />
@@ -202,54 +202,54 @@ export default function CreateVaultPage() {
               <Hash className="w-5 h-5 text-accent-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Configuração Básica</h2>
-              <p className="text-xs text-text-tertiary">Parâmetros do seu vault</p>
+              <h2 className="text-lg font-semibold text-text-primary">Basic Configuration</h2>
+              <p className="text-xs text-text-tertiary">Your vault parameters</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
-              label="Seed (identificador único)"
+              label="Seed (unique identifier)"
               type="number"
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
-              helper="Permite criar múltiplos vaults com a mesma carteira"
+              helper="Allows creating multiple vaults with the same wallet"
               icon={<Hash className="w-4 h-4" />}
             />
             <Input
-              label="Período de Inatividade (minutos)"
+              label="Inactivity Period (minutes)"
               type="number"
               min="1"
               max="525600"
               value={inactivityMinutes}
               onChange={(e) => setInactivityMinutes(e.target.value)}
-              helper="Mín: 1 min | Máx: 525.600 min (1 ano)"
+              helper="Min: 1 min | Max: 525,600 min (1 year)"
               icon={<Clock className="w-4 h-4" />}
             />
             <Input
-              label="Taxa do Keeper (basis points)"
+              label="Keeper Fee (basis points)"
               type="number"
               min="0"
               max="100"
               value={keeperFeeBps}
               onChange={(e) => setKeeperFeeBps(e.target.value)}
-              helper="100 = 1%. Recompensa para quem executar o claim"
+              helper="100 = 1%. Reward for whoever executes the claim"
               icon={<Percent className="w-4 h-4" />}
             />
             <Input
-              label="Reserva de Gas (SOL)"
+              label="Gas Reserve (SOL)"
               type="number"
               min="0.01"
               step="0.01"
               value={gasReserve}
               onChange={(e) => setGasReserve(e.target.value)}
-              helper="Mín: 0.01 SOL. Reembolso para o keeper"
+              helper="Min: 0.01 SOL. Reimbursement for the keeper"
               icon={<Fuel className="w-4 h-4" />}
             />
           </div>
 
           <div className="mt-6 flex justify-end">
-            <Button onClick={() => setStep(2)}>Continuar</Button>
+            <Button onClick={() => setStep(2)}>Continue</Button>
           </div>
         </Card>
       )}
@@ -263,8 +263,8 @@ export default function CreateVaultPage() {
                 <User className="w-5 h-5 text-accent-warm" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-text-primary">Herdeiros</h2>
-                <p className="text-xs text-text-tertiary">{heirs.length}/10 herdeiros</p>
+                <h2 className="text-lg font-semibold text-text-primary">Heirs</h2>
+                <p className="text-xs text-text-tertiary">{heirs.length}/10 heirs</p>
               </div>
             </div>
             <Badge variant={percentageSum === 10000 ? "active" : "waiting"}>
@@ -279,21 +279,21 @@ export default function CreateVaultPage() {
                 className="p-4 rounded-xl border border-border-subtle bg-bg-elevated space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-text-secondary">Herdeiro #{index + 1}</span>
+                  <span className="text-sm font-medium text-text-secondary">Heir #{index + 1}</span>
                   {heirs.length > 1 && (
                     <button
                       onClick={() => removeHeir(index)}
                       className="text-xs text-rose-400 hover:text-rose-300 transition-colors inline-flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" />
-                      Remover
+                      Remove
                     </button>
                   )}
                 </div>
 
                 <Input
-                  label="Carteira do Herdeiro"
-                  placeholder="Endereço Solana..."
+                  label="Heir Wallet"
+                  placeholder="Solana address..."
                   value={heir.wallet}
                   onChange={(e) => updateHeir(index, "wallet", e.target.value)}
                   icon={<Wallet className="w-4 h-4" />}
@@ -301,20 +301,20 @@ export default function CreateVaultPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Tipo</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Type</label>
                     <select
                       value={heir.allocationType}
                       onChange={(e) => updateHeir(index, "allocationType", e.target.value)}
                       className="w-full h-11 px-3 rounded-xl border border-border-subtle bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/30"
                     >
-                      <option value="percentage">Percentual (%)</option>
-                      <option value="fixed">Valor Fixo</option>
+                      <option value="percentage">Percentage (%)</option>
+                      <option value="fixed">Fixed Amount</option>
                     </select>
                   </div>
                   <Input
-                    label="Valor"
+                    label="Value"
                     type="number"
-                    placeholder={heir.allocationType === "percentage" ? "10000 = 100%" : "Quantidade"}
+                    placeholder={heir.allocationType === "percentage" ? "10000 = 100%" : "Amount"}
                     value={heir.allocationValue}
                     onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
                   />
@@ -329,23 +329,23 @@ export default function CreateVaultPage() {
               className="mt-4 w-full py-3 px-4 rounded-xl border border-dashed border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-focus hover:bg-bg-elevated transition-all text-sm font-medium inline-flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Adicionar Herdeiro
+              Add Heir
             </button>
           )}
 
           {percentageSum !== 10000 && heirs.some((h) => h.allocationType === "percentage") && (
             <div className="mt-4 flex items-center gap-2 text-xs text-amber-400">
               <AlertCircle className="w-4 h-4" />
-              Total percentual: {percentageSum} bps — falta {10000 - percentageSum} bps para 100%
+              Total percentage: {percentageSum} bps — {10000 - percentageSum} bps left to reach 100%
             </div>
           )}
 
           <div className="mt-6 flex gap-3">
             <Button variant="secondary" className="flex-1" onClick={() => setStep(1)}>
-              Voltar
+              Back
             </Button>
             <Button className="flex-1" onClick={() => setStep(3)}>
-              Revisar
+              Review
             </Button>
           </div>
         </Card>
@@ -359,8 +359,8 @@ export default function CreateVaultPage() {
               <CheckCircle className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary">Revisar</h2>
-              <p className="text-xs text-text-tertiary">Confirme os dados antes de criar</p>
+              <h2 className="text-lg font-semibold text-text-primary">Review</h2>
+              <p className="text-xs text-text-tertiary">Confirm the data before creating</p>
             </div>
           </div>
 
@@ -370,11 +370,11 @@ export default function CreateVaultPage() {
               <span className="font-mono text-text-primary">{seed}</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-border-subtle">
-              <span className="text-text-secondary">Inatividade</span>
-              <span className="text-text-primary">{inactivityMinutes} minutos</span>
+              <span className="text-text-secondary">Inactivity</span>
+              <span className="text-text-primary">{inactivityMinutes} minutes</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-border-subtle">
-              <span className="text-text-secondary">Taxa Keeper</span>
+              <span className="text-text-secondary">Keeper Fee</span>
               <span className="text-text-primary">{Number(keeperFeeBps) / 100}%</span>
             </div>
             <div className="flex justify-between py-2.5 border-b border-border-subtle">
@@ -385,16 +385,16 @@ export default function CreateVaultPage() {
 
           <div className="mt-6">
             <h3 className="text-sm font-medium text-text-secondary mb-3">
-              Herdeiros ({heirs.length})
+              Heirs ({heirs.length})
             </h3>
             <div className="space-y-2">
               {heirs.map((h, i) => (
                 <div key={i} className="p-3 rounded-xl bg-bg-elevated border border-border-subtle text-sm">
                   <p className="font-mono text-xs text-text-tertiary truncate">
-                    {h.wallet || "(sem endereço)"}
+                    {h.wallet || "(no address)"}
                   </p>
                   <p className="text-text-secondary mt-1">
-                    {h.allocationType === "percentage" ? "Percentual" : "Fixo"}:{" "}
+                    {h.allocationType === "percentage" ? "Percentage" : "Fixed"}:{" "}
                     <span className="text-text-primary font-medium">{h.allocationValue}</span>
                   </p>
                 </div>
@@ -410,8 +410,8 @@ export default function CreateVaultPage() {
               className="mt-0.5 w-4 h-4 rounded border-border-subtle bg-bg-elevated text-accent-primary focus:ring-accent-primary/30"
             />
             <span className="text-sm text-text-secondary">
-              Li e entendo que os fundos depositados só poderão ser resgatados pelos herdeiros 
-              após o período de inatividade, e que cancelar o vault devolve os fundos para mim.
+              I understand that deposited funds can only be claimed by heirs after the inactivity period, 
+              and that canceling the vault returns funds to me.
             </span>
           </label>
 
@@ -424,10 +424,10 @@ export default function CreateVaultPage() {
 
           <div className="mt-6 flex gap-3">
             <Button variant="secondary" className="flex-1" onClick={() => setStep(2)} disabled={loading}>
-              Voltar
+              Back
             </Button>
             <Button className="flex-1" onClick={handleSubmit} isLoading={loading} disabled={!confirmed}>
-              {loading ? "Criando..." : "Criar Vault"}
+              {loading ? "Creating..." : "Create Vault"}
             </Button>
           </div>
         </Card>

@@ -11,7 +11,7 @@ export default function WalletButton() {
           className="h-11 px-4 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary font-semibold text-sm opacity-50 cursor-not-allowed"
           disabled
         >
-          Conectar Carteira
+          Connect Wallet
         </button>
       }
     >

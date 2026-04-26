@@ -27,13 +27,13 @@ export default function Navbar() {
                 href="/vaults"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors font-medium"
               >
-                Meus Vaults
+                My Vaults
               </Link>
               <Link
                 href="/vaults/create"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors font-medium"
               >
-                Criar Vault
+                Create Vault
               </Link>
             </div>
           )}

@@ -42,10 +42,10 @@ export default function VaultCard({ vault }: VaultCardProps) {
     : "waiting";
 
   const statusLabels: Record<string, string> = {
-    active: "Ativo",
-    claimed: "Resgatado",
-    expired: "Cancelado",
-    waiting: "Aguardando",
+    active: "Active",
+    claimed: "Claimed",
+    expired: "Canceled",
+    waiting: "Waiting",
   };
 
   return (
@@ -76,7 +76,7 @@ export default function VaultCard({ vault }: VaultCardProps) {
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-text-tertiary" />
             <span className="text-sm text-text-secondary">
-              {heirCount} herdeiro{heirCount !== 1 ? "s" : ""}
+              {heirCount} heir{heirCount !== 1 ? "s" : ""}
             </span>
           </div>
           <div className="flex items-center gap-2">

@@ -81,14 +81,14 @@ export default function VaultDetailPage() {
     setActionLoading("deposit");
     try {
       const tx = await depositSol(new PublicKey(vaultAddress), Number(depositAmount));
-      success(`Depósito enviado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Deposit sent! Tx: ${tx.slice(0, 20)}...`);
       setDepositAmount("");
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
       const bal = await connection.getBalance(new PublicKey(vaultAddress));
       setVaultBalance(bal);
     } catch (err: any) {
-      const msg = err.message || "Erro ao depositar";
+      const msg = err.message || "Error depositing";
       setError(msg);
       showError(msg);
     } finally {
@@ -101,11 +101,11 @@ export default function VaultDetailPage() {
     setActionLoading("heartbeat");
     try {
       const tx = await heartbeat(new PublicKey(vaultAddress));
-      success(`Heartbeat enviado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Heartbeat sent! Tx: ${tx.slice(0, 20)}...`);
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
     } catch (err: any) {
-      const msg = err.message || "Erro no heartbeat";
+      const msg = err.message || "Heartbeat error";
       setError(msg);
       showError(msg);
     } finally {
@@ -114,15 +114,15 @@ export default function VaultDetailPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Tem certeza que deseja cancelar este vault? Todos os fundos serão devolvidos.")) return;
+    if (!confirm("Are you sure you want to cancel this vault? All funds will be returned.")) return;
     setError("");
     setActionLoading("cancel");
     try {
       const tx = await cancelVault(new PublicKey(vaultAddress));
-      success(`Vault cancelado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Vault canceled! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
-      const msg = err.message || "Erro ao cancelar";
+      const msg = err.message || "Error canceling";
       setError(msg);
       showError(msg);
     } finally {
@@ -131,7 +131,7 @@ export default function VaultDetailPage() {
   };
 
   const handleClaim = async () => {
-    if (!confirm("Executar claim? Esta ação distribuirá os ativos para os herdeiros.")) return;
+    if (!confirm("Execute claim? This action will distribute assets to the heirs.")) return;
     setError("");
     setActionLoading("claim");
     try {
@@ -141,10 +141,10 @@ export default function VaultDetailPage() {
       }) || [];
 
       const tx = await claim(new PublicKey(vaultAddress), heirPubkeys);
-      success(`Claim executado! Tx: ${tx.slice(0, 20)}...`);
+      success(`Claim executed! Tx: ${tx.slice(0, 20)}...`);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
-      const msg = err.message || "Erro ao executar claim";
+      const msg = err.message || "Error executing claim";
       setError(msg);
       showError(msg);
     } finally {
@@ -153,11 +153,11 @@ export default function VaultDetailPage() {
   };
 
   const formatTimeRemaining = (lastHeartbeat: number, inactivityPeriod: number) => {
-    if (lastHeartbeat === 0) return "Aguardando depósito";
+    if (lastHeartbeat === 0) return "Waiting for deposit";
     const nowSec = Math.floor(now / 1000);
     const expiry = lastHeartbeat + inactivityPeriod;
     const diff = expiry - nowSec;
-    if (diff <= 0) return "Expirado";
+    if (diff <= 0) return "Expired";
     const days = Math.floor(diff / 86400);
     const hours = Math.floor((diff % 86400) / 3600);
     const minutes = Math.floor((diff % 3600) / 60);
@@ -170,17 +170,17 @@ export default function VaultDetailPage() {
   if (!connected) {
     return (
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader title="Detalhes do Vault" />
+        <PageHeader title="Vault Details" />
         <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
               <Wallet className="w-8 h-8 text-text-tertiary" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Conecte sua carteira</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Connect your wallet</h3>
             <p className="text-sm text-text-secondary max-w-sm mb-6">
-              Conecte sua carteira para visualizar este vault.
+              Connect your wallet to view this vault.
             </p>
-            <ClientOnly fallback={<Button disabled>Conectar Carteira</Button>}>
+            <ClientOnly fallback={<Button disabled>Connect Wallet</Button>}>
               <WalletMultiButton />
             </ClientOnly>
           </div>
@@ -215,18 +215,18 @@ export default function VaultDetailPage() {
   if (!vault) {
     return (
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader title="Vault não encontrado" backHref="/vaults" />
+        <PageHeader title="Vault not found" backHref="/vaults" />
         <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5">
               <AlertTriangle className="w-8 h-8 text-rose-400" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">Vault não encontrado</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-2">Vault not found</h3>
             <p className="text-sm text-text-secondary max-w-sm mb-6">
-              Este endereço não corresponde a nenhum vault ativo.
+              This address does not match any active vault.
             </p>
             <Link href="/vaults">
-              <Button variant="secondary">← Voltar para Vaults</Button>
+              <Button variant="secondary">← Back to Vaults</Button>
             </Link>
           </div>
         </Card>
@@ -260,11 +260,11 @@ export default function VaultDetailPage() {
 
   const statusLabel = isActive
     ? isExpired
-      ? "Expirado"
+      ? "Expired"
       : isWaiting
-      ? "Aguardando Depósito"
-      : "Ativo"
-    : "Inativo";
+      ? "Waiting for Deposit"
+      : "Active"
+    : "Inactive";
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
@@ -276,7 +276,7 @@ export default function VaultDetailPage() {
           <Link
             href="/vaults"
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-bg-elevated border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-focus transition-all"
-            aria-label="Voltar"
+            aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -303,7 +303,7 @@ export default function VaultDetailPage() {
             </div>
             <div>
               <p className="text-sm text-text-secondary">
-                {isWaiting ? "Timer de inatividade" : isExpired ? "Status" : "Tempo restante"}
+                {isWaiting ? "Inactivity timer" : isExpired ? "Status" : "Time remaining"}
               </p>
               <p
                 className={`text-2xl md:text-3xl font-mono font-bold ${
@@ -331,7 +331,7 @@ export default function VaultDetailPage() {
             <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <Coins className="w-4 h-4 text-emerald-400" />
             </div>
-            <h3 className="font-semibold text-text-primary">Saldo</h3>
+            <h3 className="font-semibold text-text-primary">Balance</h3>
           </div>
           <p className="text-2xl font-mono font-bold text-text-primary">
             {(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL
@@ -344,11 +344,11 @@ export default function VaultDetailPage() {
             <div className="w-9 h-9 rounded-lg bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
               <Settings className="w-4 h-4 text-accent-primary" />
             </div>
-            <h3 className="font-semibold text-text-primary">Configurações</h3>
+            <h3 className="font-semibold text-text-primary">Settings</h3>
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-text-tertiary">Taxa Keeper</span>
+              <span className="text-text-tertiary">Keeper Fee</span>
               <span className="text-text-primary font-medium">
                 {(Number(vault.keeperFeeBps?.toString?.() || vault.keeperFeeBps || 0) / 100).toFixed(2)}%
               </span>
@@ -364,7 +364,7 @@ export default function VaultDetailPage() {
               <span className="text-text-primary font-mono">{vault.seed?.toString?.() || vault.seed}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-text-tertiary">Inatividade</span>
+              <span className="text-text-tertiary">Inactivity</span>
               <span className="text-text-primary font-medium">{inactivityPeriod} min</span>
             </div>
           </div>
@@ -388,8 +388,8 @@ export default function VaultDetailPage() {
               <TrendingUp className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-text-primary">Depositar SOL</h3>
-              <p className="text-xs text-text-tertiary">Adicione fundos ao vault</p>
+              <h3 className="font-semibold text-text-primary">Deposit SOL</h3>
+              <p className="text-xs text-text-tertiary">Add funds to the vault</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -397,7 +397,7 @@ export default function VaultDetailPage() {
               type="number"
               step="0.001"
               min="0"
-              placeholder="Quantidade em SOL"
+              placeholder="Amount in SOL"
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
               className="flex-1"
@@ -407,7 +407,7 @@ export default function VaultDetailPage() {
               disabled={actionLoading === "deposit" || !depositAmount}
               isLoading={actionLoading === "deposit"}
             >
-              Depositar
+              Deposit
             </Button>
           </div>
         </Card>
@@ -420,7 +420,7 @@ export default function VaultDetailPage() {
             </div>
             <div>
               <h3 className="font-semibold text-text-primary">Heartbeat</h3>
-              <p className="text-xs text-text-tertiary">Reinicia o timer de inatividade</p>
+              <p className="text-xs text-text-tertiary">Resets the inactivity timer</p>
             </div>
           </div>
           <Button
@@ -429,7 +429,7 @@ export default function VaultDetailPage() {
             isLoading={actionLoading === "heartbeat"}
             className="w-full"
           >
-            Enviar Heartbeat
+            Send Heartbeat
           </Button>
         </Card>
 
@@ -440,8 +440,8 @@ export default function VaultDetailPage() {
               <Ban className="w-4 h-4 text-rose-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-text-primary">Cancelar Vault</h3>
-              <p className="text-xs text-text-tertiary">Devolve fundos e fecha o vault</p>
+              <h3 className="font-semibold text-text-primary">Cancel Vault</h3>
+              <p className="text-xs text-text-tertiary">Returns funds and closes the vault</p>
             </div>
           </div>
           <Button
@@ -451,7 +451,7 @@ export default function VaultDetailPage() {
             isLoading={actionLoading === "cancel"}
             className="w-full"
           >
-            Cancelar Vault
+            Cancel Vault
           </Button>
         </Card>
 
@@ -462,9 +462,9 @@ export default function VaultDetailPage() {
               <Zap className="w-4 h-4 text-amber-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-text-primary">Executar Claim</h3>
+              <h3 className="font-semibold text-text-primary">Execute Claim</h3>
               <p className="text-xs text-text-tertiary">
-                {isExpired ? "Disponível — vault expirado" : "Disponível após expiração"}
+                {isExpired ? "Available — vault expired" : "Available after expiration"}
               </p>
             </div>
           </div>
@@ -474,7 +474,7 @@ export default function VaultDetailPage() {
             isLoading={actionLoading === "claim"}
             className="w-full"
           >
-            {!isExpired ? "Aguardando expiração" : "Executar Claim"}
+            {!isExpired ? "Waiting for expiration" : "Execute Claim"}
           </Button>
         </Card>
       </div>
@@ -486,7 +486,7 @@ export default function VaultDetailPage() {
             <div className="w-9 h-9 rounded-lg bg-accent-warm/10 border border-accent-warm/20 flex items-center justify-center">
               <Users className="w-4 h-4 text-accent-warm" />
             </div>
-            <h3 className="font-semibold text-text-primary">Herdeiros ({vault.heirs.length})</h3>
+            <h3 className="font-semibold text-text-primary">Heirs ({vault.heirs.length})</h3>
           </div>
           <div className="space-y-3">
             {vault.heirs.map((heir: any, i: number) => (
@@ -499,7 +499,7 @@ export default function VaultDetailPage() {
                     {heir.wallet?.toBase58?.() || heir.wallet}
                   </span>
                   <Badge variant="default">
-                    {heir.allocationType?.percentage !== undefined ? "%" : "Fixo"}
+                    {heir.allocationType?.percentage !== undefined ? "%" : "Fixed"}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -522,21 +522,21 @@ export default function VaultDetailPage() {
           <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
             <Info className="w-4 h-4 text-sky-400" />
           </div>
-          <h3 className="font-semibold text-text-primary">Atividade</h3>
+          <h3 className="font-semibold text-text-primary">Activity</h3>
         </div>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 shrink-0" />
             <div>
-              <p className="text-sm text-text-primary font-medium">Vault criado</p>
-              <p className="text-xs text-text-tertiary">Endereço: {vaultAddress.slice(0, 12)}...</p>
+              <p className="text-sm text-text-primary font-medium">Vault created</p>
+              <p className="text-xs text-text-tertiary">Address: {vaultAddress.slice(0, 12)}...</p>
             </div>
           </div>
           {vaultBalance > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-accent-primary mt-2 shrink-0" />
               <div>
-                <p className="text-sm text-text-primary font-medium">Saldo atual</p>
+                <p className="text-sm text-text-primary font-medium">Current balance</p>
                 <p className="text-xs text-text-tertiary">{(vaultBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL</p>
               </div>
             </div>

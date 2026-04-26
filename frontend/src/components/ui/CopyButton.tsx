@@ -30,7 +30,7 @@ export default function CopyButton({ text, className, displayText }: CopyButtonP
         "inline-flex items-center gap-2 font-mono text-sm text-text-secondary hover:text-text-primary transition-colors",
         className
       )}
-      aria-label="Copiar endereço"
+      aria-label="Copy address"
     >
       {displayText || text}
       <span className="inline-flex items-center justify-center w-6 h-6 rounded-md hover:bg-bg-elevated transition-colors">

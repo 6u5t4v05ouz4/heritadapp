@@ -29,7 +29,7 @@ export default function PageHeader({
           <Link
             href={backHref}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-bg-elevated border border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-focus transition-all"
-            aria-label="Voltar"
+            aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>

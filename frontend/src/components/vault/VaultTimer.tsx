@@ -37,8 +37,8 @@ export default function VaultTimer({ lastHeartbeat, inactivityPeriod, size = "sm
   else if (remainingSeconds < totalSeconds * 0.5) variant = "warning";
 
   const formatTime = () => {
-    if (isWaiting) return "Aguardando depósito";
-    if (isExpired) return "Expirado";
+    if (isWaiting) return "Waiting for deposit";
+    if (isExpired) return "Expired";
     const days = Math.floor(diff / 86400);
     const hours = Math.floor((diff % 86400) / 3600);
     const minutes = Math.floor((diff % 3600) / 60);
@@ -61,7 +61,7 @@ export default function VaultTimer({ lastHeartbeat, inactivityPeriod, size = "sm
             <Clock className="w-3.5 h-3.5 text-text-tertiary" />
           )}
           <span className="text-xs text-text-tertiary">
-            {isWaiting ? "Timer" : isExpired ? "Expirado" : "Tempo restante"}
+            {isWaiting ? "Timer" : isExpired ? "Expired" : "Time remaining"}
           </span>
         </div>
         <span
