@@ -88,7 +88,7 @@ export async function fetchAllVaults(): Promise<
   { pubkey: PublicKey; account: VaultAccount }[]
 > {
   try {
-    const accounts = await program.account.vault.all();
+    const accounts = await (program.account as any).vault.all();
     return accounts.map((acc: any) => ({
       pubkey: acc.publicKey,
       account: acc.account as VaultAccount,
@@ -106,7 +106,7 @@ export async function fetchVault(
   vaultAddress: PublicKey
 ): Promise<VaultAccount | null> {
   try {
-    const account = await program.account.vault.fetch(vaultAddress);
+    const account = await (program.account as any).vault.fetch(vaultAddress);
     return account as VaultAccount;
   } catch (err) {
     console.error(`Error fetching vault ${vaultAddress.toBase58()}:`, err);

@@ -197,12 +197,13 @@ router.post('/notifications/register', async (req: Request, res: Response) => {
 // Health check endpoint
 // ============================================================
 router.get('/health', async (_req: Request, res: Response) => {
-  const supabaseHealthy = await getSupabaseClient()
-    .from('vaults')
-    .select('count')
-    .limit(1)
-    .then(() => true)
-    .catch(() => false);
+  let supabaseHealthy = false;
+  try {
+    const { error } = await getSupabaseClient().from('vaults').select('id').limit(1);
+    if (!error) supabaseHealthy = true;
+  } catch (err) {
+    supabaseHealthy = false;
+  }
 
   return res.status(200).json({
     success: true,

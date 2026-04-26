@@ -12,3 +12,6 @@ yarn-error.log*
 .idea/
 coverage/
 *.tsbuildinfo
+package-lock.json
+.log.txt
+.sql

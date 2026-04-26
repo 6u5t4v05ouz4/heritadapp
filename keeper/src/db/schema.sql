@@ -26,9 +26,7 @@ CREATE TABLE IF NOT EXISTS vaults (
     sol_balance BIGINT NOT NULL DEFAULT 0,
     claim_executed_at TIMESTAMPTZ,
     claim_executor TEXT,
-    expires_at TIMESTAMPTZ GENERATED ALWAYS AS (
-        last_heartbeat + (inactivity_period || ' seconds')::INTERVAL
-    ) STORED
+    expires_at TIMESTAMPTZ
 );
 
 -- Indexes for vaults
@@ -36,6 +34,21 @@ CREATE INDEX IF NOT EXISTS idx_vaults_owner ON vaults(owner_address);
 CREATE INDEX IF NOT EXISTS idx_vaults_status ON vaults(status);
 CREATE INDEX IF NOT EXISTS idx_vaults_expires_at ON vaults(expires_at);
 CREATE INDEX IF NOT EXISTS idx_vaults_status_expires ON vaults(status, expires_at) WHERE status = 'active';
+
+-- Trigger to automatically calculate expires_at
+CREATE OR REPLACE FUNCTION update_vault_expires_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.expires_at := NEW.last_heartbeat + (NEW.inactivity_period * INTERVAL '1 second');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_update_vault_expires_at ON vaults;
+CREATE TRIGGER trg_update_vault_expires_at
+BEFORE INSERT OR UPDATE OF last_heartbeat, inactivity_period ON vaults
+FOR EACH ROW
+EXECUTE FUNCTION update_vault_expires_at();
 
 -- ============================================================
 -- Table: heirs

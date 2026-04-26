@@ -17,27 +17,26 @@ export async function executeClaim(
       return { success: false, error: 'vault_not_active' };
     }
 
-    // Build remaining accounts (heir_0 through heir_9)
-    const remainingAccounts = account.heirs
-      .slice(0, 10)
-      .map((heir) => ({
-        pubkey: heir.wallet,
-        isWritable: true,
-        isSigner: false,
-      }));
+    // Build accounts object
+    const accounts: any = {
+      executor: keeperKeypair.publicKey,
+      vault: vaultAddress,
+      tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+      associatedTokenProgram: new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+      systemProgram: new PublicKey('11111111111111111111111111111111'),
+      rent: new PublicKey('SysvarRent111111111111111111111111111111111'),
+    };
 
-    // If fewer than 10 heirs, we don't need to pass extras (they're optional in IDL)
+    // Anchor 0.32: Add ALL 10 heir slots — use program ID as sentinel for absent heirs
+    const sentinel = program.programId;
+    for (let i = 0; i < 10; i++) {
+      const heir = account.heirs[i];
+      accounts[`heir${i}`] = heir ? heir.wallet : sentinel;
+    }
+
     const tx = await program.methods
       .claim()
-      .accounts({
-        executor: keeperKeypair.publicKey,
-        vault: vaultAddress,
-        tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-        associatedTokenProgram: new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
-        systemProgram: new PublicKey('11111111111111111111111111111111'),
-        rent: new PublicKey('SysvarRent111111111111111111111111111111111'),
-      })
-      .remainingAccounts(remainingAccounts)
+      .accounts(accounts)
       .signers([keeperKeypair])
       .rpc({
         commitment: 'confirmed',
