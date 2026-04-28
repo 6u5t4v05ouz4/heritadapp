@@ -1,10 +1,10 @@
-{
+﻿{
   "address": "8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX",
   "metadata": {
     "name": "crypto_heranca",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "Crypto-Herança — Dead Man's Switch para herança de ativos na Solana"
+    "description": "Crypto-Heran├ºa ÔÇö Dead Man's Switch para heran├ºa de ativos na Solana"
   },
   "instructions": [
     {
@@ -869,14 +869,14 @@
     {
       "name": "Vault",
       "discriminator": [
-        24,
-        70,
-        98,
-        191,
-        58,
-        144,
-        123,
-        158
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
       ]
     }
   ],
@@ -1151,7 +1151,7 @@
       "docs": [
         "============================================================",
         "Struct: Heir",
-        "Representa um herdeiro com sua alocação",
+        "Representa um herdeiro com sua aloca├º├úo",
         "============================================================"
       ],
       "type": {
@@ -1160,7 +1160,7 @@
           {
             "name": "wallet",
             "docs": [
-              "Endereço do herdeiro"
+              "Endere├ºo do herdeiro"
             ],
             "type": "pubkey"
           },
@@ -1174,7 +1174,7 @@
           {
             "name": "allocation_type",
             "docs": [
-              "Tipo de alocação"
+              "Tipo de aloca├º├úo"
             ],
             "type": {
               "defined": {
@@ -1185,7 +1185,7 @@
           {
             "name": "allocation_value",
             "docs": [
-              "Valor da alocação (percentage em basis points ou fixed amount)"
+              "Valor da aloca├º├úo (percentage em basis points ou fixed amount)"
             ],
             "type": "u64"
           }
@@ -1198,7 +1198,7 @@
         "============================================================",
         "Account: Vault",
         "PDA derivado de [b\"vault\", owner.key().as_ref(), seed.to_le_bytes()]",
-        "Armazena configuração de herança e estado do timer",
+        "Armazena configura├º├úo de heran├ºa e estado do timer",
         "============================================================"
       ],
       "type": {
@@ -1214,21 +1214,21 @@
           {
             "name": "last_heartbeat",
             "docs": [
-              "Timestamp UNIX do último heartbeat"
+              "Timestamp UNIX do ├║ltimo heartbeat"
             ],
             "type": "i64"
           },
           {
             "name": "inactivity_period",
             "docs": [
-              "Período máximo de inatividade em segundos"
+              "Per├¡odo m├íximo de inatividade em segundos"
             ],
             "type": "i64"
           },
           {
             "name": "heirs",
             "docs": [
-              "Lista de herdeiros (máx: 10)"
+              "Lista de herdeiros (m├íx: 10)"
             ],
             "type": {
               "vec": {
@@ -1241,7 +1241,7 @@
           {
             "name": "assets",
             "docs": [
-              "Lista de assets depositados (máx: 5)"
+              "Lista de assets depositados (m├íx: 5)"
             ],
             "type": {
               "vec": "pubkey"
@@ -1250,7 +1250,7 @@
           {
             "name": "keeper_fee_bps",
             "docs": [
-              "Taxa do keeper em basis points (máx: 100 = 1%)"
+              "Taxa do keeper em basis points (m├íx: 100 = 1%)"
             ],
             "type": "u16"
           },
@@ -1275,21 +1275,21 @@
           {
             "name": "created_at",
             "docs": [
-              "Timestamp de criação"
+              "Timestamp de cria├º├úo"
             ],
             "type": "i64"
           },
           {
             "name": "bump",
             "docs": [
-              "Bump canônico do PDA"
+              "Bump can├┤nico do PDA"
             ],
             "type": "u8"
           },
           {
             "name": "seed",
             "docs": [
-              "Seed usada na derivação (permite múltiplos vaults por owner)"
+              "Seed usada na deriva├º├úo (permite m├║ltiplos vaults por owner)"
             ],
             "type": "u64"
           }
