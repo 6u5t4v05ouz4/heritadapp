@@ -72,7 +72,7 @@ async function main() {
 
   // Start API server
   const app = createServer();
-  const port = config.API_PORT;
+  const port = process.env.PORT || config.API_PORT;
 
   app.listen(port, () => {
     console.log();

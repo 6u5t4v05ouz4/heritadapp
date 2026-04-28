@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Shield, Clock, Users, Coins, ArrowRight } from "lucide-react";
+import { Shield, Clock, Users, Coins, ArrowRight, Mail } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -35,37 +35,42 @@ export default function Home() {
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
-            <ClientOnly
-              fallback={
-                <Button variant="primary" size="lg" disabled>
-                  Connect Wallet
-                </Button>
-              }
-            >
-              <WalletMultiButton />
-            </ClientOnly>
-            {connected && (
-              <Link
-                href="/vaults/create"
-                className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
-              >
-                Create my Vault
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            {!connected ? (
+              <>
+                <ClientOnly
+                  fallback={
+                    <Button variant="primary" size="lg" disabled>
+                      Connect Wallet
+                    </Button>
+                  }
+                >
+                  <WalletMultiButton />
+                </ClientOnly>
+                <a
+                  href="#how-it-works"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all duration-200"
+                >
+                  Explore Protocol
+                </a>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/vaults"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-primary bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200"
+                >
+                  View My Vaults
+                </Link>
+                <Link
+                  href="/vaults/create"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
+                >
+                  Create my Vault
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
             )}
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all duration-200"
-            >
-              Explore Protocol
-            </a>
           </div>
-
-          {connected && publicKey && (
-            <p className="mt-4 font-mono text-sm text-text-tertiary">
-              {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-6)}
-            </p>
-          )}
 
           {/* Social proof */}
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
@@ -161,17 +166,26 @@ export default function Home() {
             No setup fees, only Solana network gas.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <ClientOnly fallback={<Button variant="primary" size="lg" disabled>Connect Wallet</Button>}>
-              <WalletMultiButton />
-            </ClientOnly>
-            {connected && (
-              <Link
-                href="/vaults/create"
-                className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
-              >
-                Create my Vault
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            {!connected ? (
+              <ClientOnly fallback={<Button variant="primary" size="lg" disabled>Connect Wallet</Button>}>
+                <WalletMultiButton />
+              </ClientOnly>
+            ) : (
+              <>
+                <Link
+                  href="/vaults"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-primary bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200"
+                >
+                  View My Vaults
+                </Link>
+                <Link
+                  href="/vaults/create"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
+                >
+                  Create my Vault
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -179,7 +193,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border-subtle py-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <Image
               src="/logo.png"
@@ -190,6 +204,23 @@ export default function Home() {
             />
             <span className="text-sm font-semibold text-text-tertiary">HERITA</span>
           </div>
+          
+          <div className="flex items-center gap-5">
+            <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="X (Twitter)">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+            <a href="https://www.youtube.com/channel/UCpG1-nHq2m9REQZ3jf7TXlQ" target="_blank" rel="noopener noreferrer" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="YouTube">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </a>
+            <a href="mailto:heritadapp@gmail.com" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="Email">
+              <Mail className="w-5 h-5" />
+            </a>
+          </div>
+
           <p className="text-xs text-text-tertiary">
             Experimental protocol on Devnet. Use at your own risk.
           </p>

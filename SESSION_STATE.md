@@ -1,10 +1,10 @@
 # Session State
 
-> Last updated: 2026-04-26
+> Last updated: 2026-04-28
 > Session started: 2026-04-26 (UI Redesign + Supabase Integration)
 
 ## Current Task
-**UI/UX Redesign Completo + Integração Frontend-Supabase**
+**Supabase RLS + Auth — API Route Segura `/api/sync-vault`**
 
 A interface do HERITA foi completamente redesenhada de um wireframe genérico (zinc-only) para um design system premium dark-first chamado "Sovereign Legacy". Toda a aplicação está agora em EN-US. Além disso, o frontend agora sincroniza dados off-chain (heir contacts: name, email, phone) com o Supabase após a criação de um vault.
 
@@ -34,9 +34,10 @@ Nenhum blocker. Build (`next build`) passando sem erros.
 
 ## What's Pending / Next Steps
 
-1. **Supabase RLS + Auth (Urgente)**
-   - O frontend usa `anon` key. É necessário criar uma Edge Function, Route Handler, ou abrir RLS INSERT para `vaults`/`heirs`/`notification_preferences` (com validação de assinatura Solana) para que o sync funcione em produção.
-   - Alternativa: usar uma API route `/api/sync-vault` no Next.js que chama o Supabase com service role key.
+1. **✅ Supabase RLS + Auth (Resolvido)**
+   - Criada API Route `/api/sync-vault` que valida on-chain (owner, seed, inactivity, keeper fee, gas reserve, heirs count) antes de inserir no Supabase via **service role key**.
+   - Frontend atualizado para chamar `/api/sync-vault` via HTTP ao invés de expor `anon` key com permissões de INSERT.
+   - `.env.local.example` atualizado com `SUPABASE_SERVICE_ROLE_KEY`.
 
 2. **Notificações (Fase 4)**
    - O keeper já tem a estrutura (`notification_preferences`, `notification_logs`). Falta implementar o despachante (Resend, SendGrid, Twilio SMS, Telegram Bot API).
@@ -46,13 +47,14 @@ Nenhum blocker. Build (`next build`) passando sem erros.
    - O keeper precisa escutar eventos on-chain (vault created, deposit, heartbeat, claim) e atualizar o Supabase em tempo real. Atualmente o frontend faz o sync, mas se o usuário recarregar a página ou outro usuário acessar, o vault pode não estar indexado.
 
 4. **Deploy / Produção**
-   - Adicionar variáveis de ambiente reais no Vercel/Netlify para o Supabase.
+   - Adicionar variáveis de ambiente reais no Vercel/Netlify para o Supabase (incluindo `SUPABASE_SERVICE_ROLE_KEY` nas env vars server-only).
    - Deploy do keeper em cloud (Render, Railway) com cron jobs 24/7.
 
 ## Key Decisions & Rationale
 - **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas (prerender estático). O cliente só é instanciado no momento da chamada.
 - **Best-Effort Sync**: O sync para o Supabase não bloqueia o redirect. Se falhar, o vault já existe on-chain e o usuário pode continuar. O log de warning ajuda a debugar.
-- **Anon Key no Frontend**: Escolha consciente para MVP. Em produção, migrar para service-role via API route ou Edge Function para não expor permissões de INSERT.
+- **Service Role via API Route**: O frontend nunca mais faz INSERT direto no Supabase. A API route `/api/sync-vault` valida a vault on-chain (owner, parâmetros, heirs) e usa `SUPABASE_SERVICE_ROLE_KEY` server-side. Isso elimina a necessidade de abrir RLS INSERT para anon key.
+- **On-Chain Validation na API Route**: Antes de persistir, a route confere `vault.owner`, `seed`, `inactivityPeriod`, `keeperFeeBps`, `gasReserveLamports` e `heirs.length` contra a conta on-chain. Isso previne sync de dados falsificados.
 - **Campo `name` em `heirs`**: Adicionado no schema para personalização de notificações ("Olá João, o vault de Maria expirou...").
 
 ## Files Modified / Created (Nesta sessão)
@@ -83,12 +85,17 @@ Nenhum blocker. Build (`next build`) passando sem erros.
 - `frontend/src/app/vaults/create/page.tsx`
 - `frontend/src/app/vaults/[address]/page.tsx`
 
-### Supabase integration
+### Supabase integration (Anterior)
 - `frontend/src/lib/utils.ts` (cn helper)
 - `frontend/src/lib/supabase.ts`
 - `frontend/src/lib/vault-sync.ts`
 - `frontend/.env.local.example`
 - `keeper/src/db/schema.sql` (atualizado com `name` em heirs + idempotência)
+
+### Supabase Security & API Route (Esta sessão)
+- `frontend/src/app/api/sync-vault/route.ts` (nova API route com validação on-chain + service role insert)
+- `frontend/src/lib/vault-sync.ts` (refatorado para chamar `/api/sync-vault` via fetch)
+- `frontend/.env.local.example` (adicionado `SUPABASE_SERVICE_ROLE_KEY`)
 
 ## Important Context
 - Repositório: https://github.com/6u5t4v05ouz4/heritadapp
