@@ -53,7 +53,7 @@ export default function CreateVaultPage() {
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");
   const [heirs, setHeirs] = useState<HeirInput[]>([
-    { name: "", email: "", phone: "", wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "10000" },
+    { name: "", email: "", phone: "", wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "100" },
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -121,8 +121,8 @@ export default function CreateVaultPage() {
       }
     }
     for (const [asset, sum] of Object.entries(percentageByAsset)) {
-      if (sum !== 10000) {
-        return `Asset ${asset.slice(0, 8)}...: percentage sum must be exactly 10000 bps (100%). Current: ${sum}`;
+      if (sum !== 100) {
+        return `Asset ${asset.slice(0, 8)}...: percentage sum must be exactly 100%. Current: ${sum}%`;
       }
     }
     return null;
@@ -146,8 +146,8 @@ export default function CreateVaultPage() {
       const parsedHeirs = heirs.map((h) => ({
         wallet: h.wallet,
         asset: h.asset,
-        allocationType: h.allocationType === "percentage" ? ({ percentage: {} } as any) : ({ fixedAmount: {} } as any),
-        allocationValue: Number(h.allocationValue),
+        allocationType: { percentage: {} } as any,
+        allocationValue: Number(h.allocationValue) * 100,
       }));
 
       const { tx, vaultPDA } = await initializeVault(
@@ -245,17 +245,43 @@ export default function CreateVaultPage() {
               onChange={(e) => setSeed(e.target.value)}
               helper="Allows creating multiple vaults with the same wallet"
               icon={<Hash className="w-4 h-4" />}
+              disabled
             />
-            <Input
-              label="Inactivity Period (minutes)"
-              type="number"
-              min="1"
-              max="525600"
-              value={inactivityMinutes}
-              onChange={(e) => setInactivityMinutes(e.target.value)}
-              helper="Min: 1 min | Max: 525,600 min (1 year)"
-              icon={<Clock className="w-4 h-4" />}
-            />
+            <div>
+              <Input
+                label="Inactivity Period (minutes)"
+                type="number"
+                min="1"
+                max="525600"
+                value={inactivityMinutes}
+                onChange={(e) => setInactivityMinutes(e.target.value)}
+                helper="Min: 1 min | Max: 525,600 min (1 year)"
+                icon={<Clock className="w-4 h-4" />}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setInactivityMinutes("129600")}
+                  className="px-2 py-1 text-xs rounded-md bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                >
+                  3 Months
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInactivityMinutes("259200")}
+                  className="px-2 py-1 text-xs rounded-md bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                >
+                  6 Months
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInactivityMinutes("525600")}
+                  className="px-2 py-1 text-xs rounded-md bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                >
+                  12 Months
+                </button>
+              </div>
+            </div>
             <Input
               label="Keeper Fee (basis points)"
               type="number"
@@ -265,6 +291,7 @@ export default function CreateVaultPage() {
               onChange={(e) => setKeeperFeeBps(e.target.value)}
               helper="100 = 1%. Reward for whoever executes the claim"
               icon={<Percent className="w-4 h-4" />}
+              disabled
             />
             <Input
               label="Gas Reserve (SOL)"
@@ -275,6 +302,7 @@ export default function CreateVaultPage() {
               onChange={(e) => setGasReserve(e.target.value)}
               helper="Min: 0.01 SOL. Reimbursement for the keeper"
               icon={<Fuel className="w-4 h-4" />}
+              disabled
             />
           </div>
 
@@ -297,8 +325,8 @@ export default function CreateVaultPage() {
                 <p className="text-xs text-text-tertiary">{heirs.length}/10 heirs</p>
               </div>
             </div>
-            <Badge variant={percentageSum === 10000 ? "active" : "waiting"}>
-              Total: {percentageSum} bps
+            <Badge variant={percentageSum === 100 ? "active" : "waiting"}>
+              Total: {percentageSum}%
             </Badge>
           </div>
 
@@ -358,22 +386,53 @@ export default function CreateVaultPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-1.5">Type</label>
-                    <select
-                      value={heir.allocationType}
-                      onChange={(e) => updateHeir(index, "allocationType", e.target.value)}
-                      className="w-full h-11 px-3 rounded-xl border border-border-subtle bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/30"
-                    >
-                      <option value="percentage">Percentage (%)</option>
-                      <option value="fixed">Fixed Amount</option>
-                    </select>
+                    <Input
+                      value="Percentage (%)"
+                      disabled
+                      icon={<Percent className="w-4 h-4" />}
+                    />
                   </div>
-                  <Input
-                    label="Value"
-                    type="number"
-                    placeholder={heir.allocationType === "percentage" ? "10000 = 100%" : "Amount"}
-                    value={heir.allocationValue}
-                    onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
-                  />
+                  <div>
+                    <Input
+                      label="Value (%)"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="100"
+                      value={heir.allocationValue}
+                      onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
+                    />
+                    <div className="flex items-center gap-1 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => updateHeir(index, "allocationValue", "25")}
+                        className="px-2 py-1 text-[10px] rounded bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                      >
+                        25%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateHeir(index, "allocationValue", "50")}
+                        className="px-2 py-1 text-[10px] rounded bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                      >
+                        50%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateHeir(index, "allocationValue", "75")}
+                        className="px-2 py-1 text-[10px] rounded bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                      >
+                        75%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateHeir(index, "allocationValue", "100")}
+                        className="px-2 py-1 text-[10px] rounded bg-bg-base border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-colors text-text-secondary"
+                      >
+                        100%
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -389,10 +448,10 @@ export default function CreateVaultPage() {
             </button>
           )}
 
-          {percentageSum !== 10000 && heirs.some((h) => h.allocationType === "percentage") && (
+          {percentageSum !== 100 && heirs.some((h) => h.allocationType === "percentage") && (
             <div className="mt-4 flex items-center gap-2 text-xs text-amber-400">
               <AlertCircle className="w-4 h-4" />
-              Total percentage: {percentageSum} bps — {10000 - percentageSum} bps left to reach 100%
+              Total percentage: {percentageSum}% — {100 - percentageSum}% left to reach 100%
             </div>
           )}
 
@@ -451,7 +510,7 @@ export default function CreateVaultPage() {
                       {h.name || `Heir #${i + 1}`}
                     </span>
                     <span className="text-xs text-text-tertiary font-mono">
-                      {h.allocationType === "percentage" ? "Percentage" : "Fixed"}: {h.allocationValue}
+                      Percentage: {h.allocationValue}%
                     </span>
                   </div>
                   {(h.email || h.phone) && (
