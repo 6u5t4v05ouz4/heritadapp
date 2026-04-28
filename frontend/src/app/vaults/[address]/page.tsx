@@ -21,6 +21,9 @@ import {
   Info,
   TrendingUp,
   Settings,
+  Pencil,
+  Trash2,
+  X,
 } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import PageHeader from "@/components/layout/PageHeader";
@@ -36,7 +39,7 @@ import { useToast } from "@/hooks/useToast";
 export default function VaultDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
   const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
   const { success, error: showError, ToastContainer } = useToast();
@@ -49,6 +52,24 @@ export default function VaultDetailPage() {
   const [error, setError] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [now, setNow] = useState(Date.now());
+
+  // Supabase heirs data (enriched with name, email, phone)
+  const [supabaseHeirs, setSupabaseHeirs] = useState<any[]>([]);
+  const [heirsLoading, setHeirsLoading] = useState(false);
+
+  // Edit modal state
+  const [editingHeir, setEditingHeir] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    walletAddress: "",
+    assetMint: "",
+    allocationType: "percentage",
+    allocationValue: "",
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -75,6 +96,101 @@ export default function VaultDetailPage() {
 
     loadVault();
   }, [vaultAddress, fetchVault, connection]);
+
+  // Load heirs from Supabase
+  useEffect(() => {
+    if (!vaultAddress) return;
+    loadSupabaseHeirs();
+  }, [vaultAddress]);
+
+  const loadSupabaseHeirs = async () => {
+    setHeirsLoading(true);
+    try {
+      const res = await fetch(`/api/vaults/${vaultAddress}/heirs`);
+      if (res.ok) {
+        const data = await res.json();
+        setSupabaseHeirs(data.heirs || []);
+      }
+    } catch (err) {
+      console.error("[VaultDetail] Failed to load heirs:", err);
+    } finally {
+      setHeirsLoading(false);
+    }
+  };
+
+  const openEditModal = (heir: any) => {
+    setEditingHeir(heir);
+    setEditForm({
+      name: heir.name || "",
+      email: heir.email || "",
+      phone: heir.phone || "",
+      walletAddress: heir.wallet_address || "",
+      assetMint: heir.asset_mint || "11111111111111111111111111111111",
+      allocationType: heir.allocation_type === "percentage" ? "percentage" : "fixed",
+      allocationValue: heir.allocation_value?.toString() || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingHeir(null);
+    setEditLoading(false);
+  };
+
+  const handleUpdateHeir = async () => {
+    if (!editingHeir || !publicKey) return;
+    setEditLoading(true);
+    try {
+      const res = await fetch(`/api/heirs/${editingHeir.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerAddress: publicKey.toBase58(),
+          name: editForm.name,
+          walletAddress: editForm.walletAddress,
+          assetMint: editForm.assetMint,
+          allocationType: editForm.allocationType,
+          allocationValue: Number(editForm.allocationValue),
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to update heir");
+      }
+
+      success("Heir updated successfully!");
+      closeEditModal();
+      await loadSupabaseHeirs();
+    } catch (err: any) {
+      showError(err.message || "Error updating heir");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteHeir = async (heir: any) => {
+    if (!publicKey) return;
+    if (!confirm(`Are you sure you want to remove heir "${heir.name || heir.wallet_address}"?`)) return;
+
+    try {
+      const res = await fetch(
+        `/api/heirs/${heir.id}?ownerAddress=${publicKey.toBase58()}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to delete heir");
+      }
+
+      success("Heir removed successfully!");
+      await loadSupabaseHeirs();
+    } catch (err: any) {
+      showError(err.message || "Error removing heir");
+    }
+  };
 
   const handleDeposit = async () => {
     setError("");
@@ -480,40 +596,265 @@ export default function VaultDetailPage() {
       </div>
 
       {/* Heirs */}
-      {vault.heirs && vault.heirs.length > 0 && (
+      {(vault.heirs?.length > 0 || supabaseHeirs.length > 0) && (
         <Card>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-accent-warm/10 border border-accent-warm/20 flex items-center justify-center">
-              <Users className="w-4 h-4 text-accent-warm" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-accent-warm/10 border border-accent-warm/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-accent-warm" />
+              </div>
+              <h3 className="font-semibold text-text-primary">
+                Heirs ({supabaseHeirs.length || vault.heirs?.length || 0})
+              </h3>
             </div>
-            <h3 className="font-semibold text-text-primary">Heirs ({vault.heirs.length})</h3>
+            {heirsLoading && (
+              <span className="text-xs text-text-tertiary">Syncing...</span>
+            )}
           </div>
           <div className="space-y-3">
-            {vault.heirs.map((heir: any, i: number) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl bg-bg-elevated border border-border-subtle"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-text-tertiary truncate max-w-[70%]">
-                    {heir.wallet?.toBase58?.() || heir.wallet}
-                  </span>
-                  <Badge variant="default">
-                    {heir.allocationType?.percentage !== undefined ? "%" : "Fixed"}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-secondary">
-                    Asset: <span className="font-mono text-xs text-text-tertiary">{heir.asset?.toBase58?.() || heir.asset}</span>
-                  </span>
-                  <span className="text-text-primary font-medium font-mono">
-                    {heir.allocationValue?.toString?.() || heir.allocationValue}
-                  </span>
-                </div>
-              </div>
-            ))}
+            {supabaseHeirs.length > 0
+              ? supabaseHeirs.map((heir: any) => (
+                  <div
+                    key={heir.id}
+                    className="p-4 rounded-xl bg-bg-elevated border border-border-subtle group"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {heir.name && (
+                            <span className="font-semibold text-text-primary text-sm">
+                              {heir.name}
+                            </span>
+                          )}
+                          <Badge variant="default" className="text-[10px]">
+                            {heir.allocation_type === "percentage" ? "%" : "Fixed"}
+                          </Badge>
+                        </div>
+                        <div className="font-mono text-xs text-text-tertiary truncate">
+                          {heir.wallet_address}
+                        </div>
+                        {(heir.email || heir.phone) && (
+                          <div className="flex items-center gap-3 mt-1.5">
+                            {heir.email && (
+                              <span className="text-xs text-text-secondary">
+                                {heir.email}
+                              </span>
+                            )}
+                            {heir.phone && (
+                              <span className="text-xs text-text-secondary">
+                                {heir.phone}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-text-tertiary">
+                            Asset: {" "}
+                            <span className="font-mono">
+                              {heir.asset_mint}
+                            </span>
+                          </span>
+                          <span className="text-text-primary font-medium font-mono text-sm">
+                            {heir.allocation_value}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEditModal(heir)}
+                          className="p-1.5 rounded-lg text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors"
+                          aria-label="Edit heir"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteHeir(heir)}
+                          className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          aria-label="Delete heir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              : vault.heirs?.map((heir: any, i: number) => (
+                  <div
+                    key={i}
+                    className="p-4 rounded-xl bg-bg-elevated border border-border-subtle"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-xs text-text-tertiary truncate max-w-[70%]">
+                        {heir.wallet?.toBase58?.() || heir.wallet}
+                      </span>
+                      <Badge variant="default">
+                        {heir.allocationType?.percentage !== undefined ? "%" : "Fixed"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">
+                        Asset:{" "}
+                        <span className="font-mono text-xs text-text-tertiary">
+                          {heir.asset?.toBase58?.() || heir.asset}
+                        </span>
+                      </span>
+                      <span className="text-text-primary font-medium font-mono">
+                        {heir.allocationValue?.toString?.() || heir.allocationValue}
+                      </span>
+                    </div>
+                  </div>
+                ))}
           </div>
         </Card>
+      )}
+
+      {/* Edit Heir Modal */}
+      {showEditModal && editingHeir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-bg-base border border-border-subtle rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-text-primary">
+                Edit Heir
+              </h3>
+              <button
+                onClick={closeEditModal}
+                className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-white/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                  Full Name
+                </label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  placeholder="Heir name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                  Wallet Address
+                </label>
+                <Input
+                  value={editForm.walletAddress}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, walletAddress: e.target.value }))
+                  }
+                  placeholder="Solana wallet address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                  Asset Mint
+                </label>
+                <Input
+                  value={editForm.assetMint}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, assetMint: e.target.value }))
+                  }
+                  placeholder="Token mint address"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                    Allocation Type
+                  </label>
+                  <select
+                    value={editForm.allocationType}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        allocationType: e.target.value,
+                      }))
+                    }
+                    className="w-full h-10 px-3 rounded-lg bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-primary"
+                  >
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                    Value
+                  </label>
+                  <Input
+                    type="number"
+                    value={editForm.allocationValue}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        allocationValue: e.target.value,
+                      }))
+                    }
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                  placeholder="heir@email.com"
+                />
+                <p className="text-[10px] text-text-tertiary mt-1">
+                  Email will be saved in notification preferences
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                  Phone
+                </label>
+                <Input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                  placeholder="+1 234 567 890"
+                />
+                <p className="text-[10px] text-text-tertiary mt-1">
+                  Phone will be saved in notification preferences
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="secondary"
+                onClick={closeEditModal}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateHeir}
+                isLoading={editLoading}
+                disabled={editLoading}
+                className="flex-1"
+              >
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Timeline / Activity */}
