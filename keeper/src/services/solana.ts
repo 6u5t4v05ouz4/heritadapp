@@ -88,13 +88,18 @@ export async function fetchAllVaults(): Promise<
   { pubkey: PublicKey; account: VaultAccount }[]
 > {
   try {
+    console.log('[Solana] Fetching all vaults from program:', config.PROGRAM_ID_PUBKEY.toBase58());
+    console.log('[Solana] Using RPC:', config.SOLANA_RPC_URL);
+    
     const accounts = await (program.account as any).vault.all();
+    console.log(`[Solana] Found ${accounts.length} raw accounts`);
+    
     return accounts.map((acc: any) => ({
       pubkey: acc.publicKey,
       account: acc.account as VaultAccount,
     }));
-  } catch (err) {
-    console.error('Error fetching vaults:', err);
+  } catch (err: any) {
+    console.error('[Solana] Error fetching vaults:', err.message || err);
     return [];
   }
 }
