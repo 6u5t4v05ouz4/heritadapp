@@ -659,11 +659,12 @@ export default function VaultDetailPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEditModal(heir)}
                           className="p-1.5 rounded-lg text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors"
                           aria-label="Edit heir"
+                          title="Edit heir"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -671,6 +672,7 @@ export default function VaultDetailPage() {
                           onClick={() => handleDeleteHeir(heir)}
                           className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                           aria-label="Delete heir"
+                          title="Remove heir"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
