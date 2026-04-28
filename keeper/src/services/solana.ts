@@ -105,10 +105,16 @@ export async function fetchAllVaults(): Promise<
     const results: { pubkey: PublicKey; account: VaultAccount }[] = [];
     for (const { pubkey, account } of accounts) {
       try {
+        console.log(`[Solana] Decoding account ${pubkey.toBase58()}, size: ${account.data.length}`);
         const decoded = await (program.account as any).vault.fetch(pubkey);
         results.push({ pubkey, account: decoded as VaultAccount });
       } catch (decodeErr: any) {
         console.error(`[Solana] Failed to decode vault ${pubkey.toBase58()}:`, decodeErr.message);
+        // Try to show first 8 bytes for debugging
+        const data = account.data;
+        const first8 = Array.from(data.slice(0, 8));
+        console.error(`[Solana] First 8 bytes: [${first8.join(', ')}]`);
+        console.error(`[Solana] Expected discriminator from IDL: [211, 8, 232, 43, 2, 152, 117, 119]`);
       }
     }
     
