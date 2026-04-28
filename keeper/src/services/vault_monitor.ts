@@ -84,26 +84,78 @@ export async function upsertVault(
 
 // ============================================================
 // Sync heirs for a vault
+// Preserves off-chain data (name, email, phone)
 // ============================================================
 async function syncHeirs(
   vaultId: string,
   heirs: VaultAccount['heirs']
 ): Promise<void> {
-  // Delete existing heirs and re-insert (simple approach)
-  await supabase.from('heirs').delete().eq('vault_id', vaultId);
+  if (heirs.length === 0) {
+    await supabase.from('heirs').delete().eq('vault_id', vaultId);
+    return;
+  }
 
-  if (heirs.length === 0) return;
+  // Fetch existing heirs to preserve off-chain data
+  const { data: existingHeirs } = await supabase
+    .from('heirs')
+    .select('*')
+    .eq('vault_id', vaultId);
 
-  const heirRows = heirs.map((h) => ({
-    vault_id: vaultId,
-    wallet_address: h.wallet.toBase58(),
-    asset_mint: h.asset.toBase58(),
-    allocation_type: h.allocationType.percentage !== undefined ? 'percentage' : 'fixed_amount',
-    allocation_value: h.allocationValue.toNumber(),
-  }));
+  const existingMap = new Map(
+    (existingHeirs || []).map((h: any) => [h.wallet_address, h])
+  );
 
-  const { error } = await supabase.from('heirs').insert(heirRows);
-  if (error) throw error;
+  const onChainWallets = new Set(heirs.map(h => h.wallet.toBase58()));
+
+  // 1. Delete heirs removed on-chain
+  const toDelete = (existingHeirs || []).filter(
+    (h: any) => !onChainWallets.has(h.wallet_address)
+  );
+  
+  if (toDelete.length > 0) {
+    await supabase
+      .from('heirs')
+      .delete()
+      .eq('vault_id', vaultId)
+      .in('wallet_address', toDelete.map((h: any) => h.wallet_address));
+  }
+
+  // 2. Update existing heirs (preserve name)
+  for (const h of heirs) {
+    const walletAddress = h.wallet.toBase58();
+    const existing = existingMap.get(walletAddress);
+
+    const heirData = {
+      vault_id: vaultId,
+      wallet_address: walletAddress,
+      asset_mint: h.asset.toBase58(),
+      allocation_type: h.allocationType.percentage !== undefined ? 'percentage' : 'fixed_amount',
+      allocation_value: h.allocationValue.toNumber(),
+      // Preserve off-chain data if heir already exists
+      name: existing?.name || null,
+    };
+
+    if (existing) {
+      // Update existing heir
+      const { error } = await supabase
+        .from('heirs')
+        .update(heirData)
+        .eq('id', existing.id);
+      
+      if (error) {
+        console.error(`[syncHeirs] Update error for ${walletAddress}:`, error);
+      }
+    } else {
+      // Insert new heir
+      const { error } = await supabase
+        .from('heirs')
+        .insert(heirData);
+      
+      if (error) {
+        console.error(`[syncHeirs] Insert error for ${walletAddress}:`, error);
+      }
+    }
+  }
 }
 
 // ============================================================

@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS heirs (
     allocation_type TEXT NOT NULL CHECK (allocation_type IN ('percentage', 'fixed_amount')),
     allocation_value BIGINT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(vault_id, wallet_address)
 );
 
 CREATE INDEX IF NOT EXISTS idx_heirs_vault ON heirs(vault_id);
