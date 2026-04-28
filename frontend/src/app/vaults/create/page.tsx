@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { syncVaultToSupabase } from "@/lib/vault-sync";
 import Link from "next/link";
 import {
   Clock,
@@ -18,6 +19,8 @@ import {
   CheckCircle,
   User,
   Wallet,
+  Mail,
+  Phone,
 } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import PageHeader from "@/components/layout/PageHeader";
@@ -29,6 +32,9 @@ import Badge from "@/components/ui/Badge";
 import { useToast } from "@/hooks/useToast";
 
 interface HeirInput {
+  name: string;
+  email: string;
+  phone: string;
   wallet: string;
   asset: string;
   allocationType: "percentage" | "fixed";
@@ -37,7 +43,7 @@ interface HeirInput {
 
 export default function CreateVaultPage() {
   const router = useRouter();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   const { initializeVault } = useVault();
   const { success, error: showError, ToastContainer } = useToast();
 
@@ -47,7 +53,7 @@ export default function CreateVaultPage() {
   const [keeperFeeBps, setKeeperFeeBps] = useState("100");
   const [gasReserve, setGasReserve] = useState("0.01");
   const [heirs, setHeirs] = useState<HeirInput[]>([
-    { wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "10000" },
+    { name: "", email: "", phone: "", wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "10000" },
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +61,7 @@ export default function CreateVaultPage() {
 
   const addHeir = () => {
     if (heirs.length >= 10) return;
-    setHeirs([...heirs, { wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "" }]);
+    setHeirs([...heirs, { name: "", email: "", phone: "", wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "" }]);
   };
 
   const removeHeir = (index: number) => {
@@ -97,6 +103,12 @@ export default function CreateVaultPage() {
     }
     if (heirs.some((h) => !h.wallet.trim())) {
       return "All heirs must have a wallet address";
+    }
+    for (let i = 0; i < heirs.length; i++) {
+      const h = heirs[i];
+      if (h.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
+        return `Heir #${i + 1} has an invalid email address`;
+      }
     }
     const percentageByAsset: Record<string, number> = {};
     for (const heir of heirs) {
@@ -145,6 +157,24 @@ export default function CreateVaultPage() {
         Number(keeperFeeBps),
         Number(gasReserve)
       );
+
+      // Sync to Supabase (best-effort, non-blocking)
+      if (publicKey) {
+        try {
+          await syncVaultToSupabase({
+            vaultAddress: vaultPDA.toBase58(),
+            ownerAddress: publicKey.toBase58(),
+            seed: Number(seed),
+            inactivityPeriod: Number(inactivityMinutes) * 60,
+            keeperFeeBps: Number(keeperFeeBps),
+            gasReserveLamports: Math.floor(Number(gasReserve) * LAMPORTS_PER_SOL),
+            solBalance: 0,
+            heirs: heirs,
+          });
+        } catch (syncErr: any) {
+          console.warn("[CreateVault] Supabase sync failed:", syncErr.message);
+        }
+      }
 
       success("Vault created successfully!");
       router.push(`/vaults/${vaultPDA.toBase58()}`);
@@ -291,6 +321,32 @@ export default function CreateVaultPage() {
                   )}
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input
+                    label="Full Name"
+                    placeholder="John Doe"
+                    value={heir.name}
+                    onChange={(e) => updateHeir(index, "name", e.target.value)}
+                    icon={<User className="w-4 h-4" />}
+                  />
+                  <Input
+                    label="Email"
+                    type="email"
+                    placeholder="john@example.com"
+                    value={heir.email}
+                    onChange={(e) => updateHeir(index, "email", e.target.value)}
+                    icon={<Mail className="w-4 h-4" />}
+                  />
+                  <Input
+                    label="Phone"
+                    type="tel"
+                    placeholder="+1 555 123 4567"
+                    value={heir.phone}
+                    onChange={(e) => updateHeir(index, "phone", e.target.value)}
+                    icon={<Phone className="w-4 h-4" />}
+                  />
+                </div>
+
                 <Input
                   label="Heir Wallet"
                   placeholder="Solana address..."
@@ -390,12 +446,22 @@ export default function CreateVaultPage() {
             <div className="space-y-2">
               {heirs.map((h, i) => (
                 <div key={i} className="p-3 rounded-xl bg-bg-elevated border border-border-subtle text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-text-primary">
+                      {h.name || `Heir #${i + 1}`}
+                    </span>
+                    <span className="text-xs text-text-tertiary font-mono">
+                      {h.allocationType === "percentage" ? "Percentage" : "Fixed"}: {h.allocationValue}
+                    </span>
+                  </div>
+                  {(h.email || h.phone) && (
+                    <div className="flex items-center gap-3 text-xs text-text-tertiary mb-1">
+                      {h.email && <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" />{h.email}</span>}
+                      {h.phone && <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />{h.phone}</span>}
+                    </div>
+                  )}
                   <p className="font-mono text-xs text-text-tertiary truncate">
                     {h.wallet || "(no address)"}
-                  </p>
-                  <p className="text-text-secondary mt-1">
-                    {h.allocationType === "percentage" ? "Percentage" : "Fixed"}:{" "}
-                    <span className="text-text-primary font-medium">{h.allocationValue}</span>
                   </p>
                 </div>
               ))}

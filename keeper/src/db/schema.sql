@@ -57,6 +57,7 @@ EXECUTE FUNCTION update_vault_expires_at();
 CREATE TABLE IF NOT EXISTS heirs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     vault_id UUID NOT NULL REFERENCES vaults(id) ON DELETE CASCADE,
+    name TEXT,
     wallet_address TEXT NOT NULL,
     asset_mint TEXT NOT NULL DEFAULT '11111111111111111111111111111111',
     allocation_type TEXT NOT NULL CHECK (allocation_type IN ('percentage', 'fixed_amount')),
@@ -165,14 +166,17 @@ ALTER TABLE claim_executions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE heartbeat_logs ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Public read access for active vaults (dApp listing)
+DROP POLICY IF EXISTS "vaults_public_read" ON vaults;
 CREATE POLICY "vaults_public_read" ON vaults
     FOR SELECT USING (status = 'active');
 
 -- Policy: Owner can read/update their own vaults
+DROP POLICY IF EXISTS "vaults_owner_access" ON vaults;
 CREATE POLICY "vaults_owner_access" ON vaults
     FOR ALL USING (owner_address = auth.uid()::text);
 
 -- Policy: Heirs can read vaults they are associated with
+DROP POLICY IF EXISTS "heirs_vault_read" ON vaults;
 CREATE POLICY "heirs_vault_read" ON vaults
     FOR SELECT USING (
         EXISTS (
@@ -224,15 +228,19 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_vaults_updated_at ON vaults;
 CREATE TRIGGER update_vaults_updated_at BEFORE UPDATE ON vaults
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_heirs_updated_at ON heirs;
 CREATE TRIGGER update_heirs_updated_at BEFORE UPDATE ON heirs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_vault_assets_updated_at ON vault_assets;
 CREATE TRIGGER update_vault_assets_updated_at BEFORE UPDATE ON vault_assets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_notif_prefs_updated_at ON notification_preferences;
 CREATE TRIGGER update_notif_prefs_updated_at BEFORE UPDATE ON notification_preferences
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -252,8 +260,12 @@ BEGIN;
     IF EXISTS (
       SELECT 1 FROM pg_extension WHERE extname = 'realtime'
     ) THEN
-      -- Add vaults table to realtime publication
-      EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE vaults';
+      -- Add vaults table to realtime publication (ignore if already added)
+      BEGIN
+        EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE vaults';
+      EXCEPTION WHEN duplicate_object THEN
+        RAISE NOTICE 'Table vaults already in supabase_realtime publication';
+      END;
     END IF;
   END $$;
 COMMIT;
