@@ -4,7 +4,7 @@
 > Session started: 2026-04-26 (UI Redesign + Supabase Integration)
 
 ## Current Task
-**Supabase RLS + Auth — API Route Segura `/api/sync-vault`**
+**Deploy para Produção — Crypto-Heranca Keeper + Frontend**
 
 A interface do HERITA foi completamente redesenhada de um wireframe genérico (zinc-only) para um design system premium dark-first chamado "Sovereign Legacy". Toda a aplicação está agora em EN-US. Além disso, o frontend agora sincroniza dados off-chain (heir contacts: name, email, phone) com o Supabase após a criação de um vault.
 
@@ -30,25 +30,27 @@ A interface do HERITA foi completamente redesenhada de um wireframe genérico (z
 - [x] **Template de env**: `.env.local.example` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ## Active Problem / Blocker
-Nenhum blocker. Build (`next build`) passando sem erros.
+**Vercel Deployment Protection ativado** — o frontend está requerendo autenticação Vercel para acessar. Precisa desativar em:
+https://vercel.com/6u5t4v0s-projects/frontend/settings/deployment-protection
 
 ## What's Pending / Next Steps
 
-1. **✅ Supabase RLS + Auth (Resolvido)**
-   - Criada API Route `/api/sync-vault` que valida on-chain (owner, seed, inactivity, keeper fee, gas reserve, heirs count) antes de inserir no Supabase via **service role key**.
-   - Frontend atualizado para chamar `/api/sync-vault` via HTTP ao invés de expor `anon` key com permissões de INSERT.
-   - `.env.local.example` atualizado com `SUPABASE_SERVICE_ROLE_KEY`.
+### Deploy (Em Progresso)
+1. **✅ Step 0 — Code Changes**: Commit com API route segura + ajustes do keeper (PORT, Procfile, railway.json)
+2. **✅ Step 1 — Supabase**: Schema já aplicado, env vars configuradas
+3. **✅ Step 2 — Keeper no Railway**: Deployado em `https://crypto-heranca-keeper-production.up.railway.app` (health: OK)
+4. **✅ Step 3 — Frontend no Vercel**: Deployado em `https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app`
+5. **⏳ Step 4 — End-to-End Test**: Aguardando desativação do Vercel Deployment Protection
+6. **⏳ Step 5 — Domínio Customizado**: Opcional, após E2E passar
 
-2. **Notificações (Fase 4)**
-   - O keeper já tem a estrutura (`notification_preferences`, `notification_logs`). Falta implementar o despachante (Resend, SendGrid, Twilio SMS, Telegram Bot API).
-   - O keeper precisa ler as preferências do Supabase antes de enviar notificações de "vault expirando".
+### Próximas Features (Pós-Deploy)
+7. **Notificações (Fase 4)**
+   - Implementar despachante (Resend/SendGrid para email, Twilio para SMS)
+   - Integrar com `notification_preferences` e `notification_logs`
 
-3. **Keeper Indexing**
-   - O keeper precisa escutar eventos on-chain (vault created, deposit, heartbeat, claim) e atualizar o Supabase em tempo real. Atualmente o frontend faz o sync, mas se o usuário recarregar a página ou outro usuário acessar, o vault pode não estar indexado.
-
-4. **Deploy / Produção**
-   - Adicionar variáveis de ambiente reais no Vercel/Netlify para o Supabase (incluindo `SUPABASE_SERVICE_ROLE_KEY` nas env vars server-only).
-   - Deploy do keeper em cloud (Render, Railway) com cron jobs 24/7.
+8. **Keeper Indexing**
+   - Escutar eventos on-chain e atualizar Supabase em tempo real
+   - Atualmente o sync é feito pelo frontend no momento da criação
 
 ## Key Decisions & Rationale
 - **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas (prerender estático). O cliente só é instanciado no momento da chamada.
@@ -92,13 +94,30 @@ Nenhum blocker. Build (`next build`) passando sem erros.
 - `frontend/.env.local.example`
 - `keeper/src/db/schema.sql` (atualizado com `name` em heirs + idempotência)
 
-### Supabase Security & API Route (Esta sessão)
+### Supabase Security & API Route (Sessão anterior)
 - `frontend/src/app/api/sync-vault/route.ts` (nova API route com validação on-chain + service role insert)
 - `frontend/src/lib/vault-sync.ts` (refatorado para chamar `/api/sync-vault` via fetch)
 - `frontend/.env.local.example` (adicionado `SUPABASE_SERVICE_ROLE_KEY`)
+
+### Deploy para Produção (Esta sessão)
+- `keeper/Procfile` (novo — define comando de start para Railway)
+- `keeper/railway.json` (novo — configuração de build/deploy do Railway)
+- `keeper/src/index.ts` (editado — adicionado `process.env.PORT` fallback)
+- `frontend/.env.local` (corrigido — substituída Service Role Key por Anon Key correta)
+- **Keeper deployado no Railway**: `https://crypto-heranca-keeper-production.up.railway.app`
+  - Health check: ✅ API + Supabase conectados
+  - Cron jobs: vault sync (5min) + claim check (5min)
+  - CORS restrito ao domínio do Vercel
+- **Frontend deployado no Vercel**: `https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app`
+  - Env vars configuradas: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (server-only), SOLANA_NETWORK, PROGRAM_ID
 
 ## Important Context
 - Repositório: https://github.com/6u5t4v05ouz4/heritadapp
 - Program ID devnet: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
 - Idioma UI: EN-US
 - Stack: Next.js 16 + React 19 + Tailwind CSS v4 + TypeScript + Anchor 0.32 + Supabase
+
+## Deploy URLs
+- **Frontend (Vercel)**: https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app
+- **Keeper (Railway)**: https://crypto-heranca-keeper-production.up.railway.app
+- **Supabase**: https://naotxbbzuexiaiwbmikr.supabase.co
