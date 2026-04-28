@@ -101,12 +101,12 @@ export default function CreateVaultPage() {
     if (new Set(wallets).size !== wallets.length) {
       return "Heirs cannot have duplicate addresses";
     }
-    if (heirs.some((h) => !h.wallet.trim())) {
-      return "All heirs must have a wallet address";
-    }
     for (let i = 0; i < heirs.length; i++) {
       const h = heirs[i];
-      if (h.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
+      if (!h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.wallet.trim() || !h.allocationValue) {
+        return `Please fill all fields (Name, Email, Phone, Wallet, Value) for Heir #${i + 1}`;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
         return `Heir #${i + 1} has an invalid email address`;
       }
     }
@@ -185,6 +185,42 @@ export default function CreateVaultPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNextStep2 = () => {
+    if (heirs.length === 0) {
+      showError("Add at least one heir");
+      return;
+    }
+    
+    const wallets = heirs.map((h) => h.wallet);
+    if (new Set(wallets).size !== wallets.length) {
+      showError("Heirs cannot have duplicate addresses");
+      return;
+    }
+
+    for (let i = 0; i < heirs.length; i++) {
+      const h = heirs[i];
+      if (!h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.wallet.trim() || !h.allocationValue) {
+        showError(`Please fill all fields (Name, Email, Phone, Wallet, Value) for Heir #${i + 1}`);
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
+        showError(`Heir #${i + 1} has an invalid email address`);
+        return;
+      }
+      if (Number(h.allocationValue) <= 0) {
+        showError(`Heir #${i + 1} must have a percentage > 0`);
+        return;
+      }
+    }
+
+    if (percentageSum !== 100) {
+      showError(`Total percentage must be exactly 100%. Current: ${percentageSum}%`);
+      return;
+    }
+
+    setStep(3);
   };
 
   if (!connected) {
@@ -459,7 +495,7 @@ export default function CreateVaultPage() {
             <Button variant="secondary" className="flex-1" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button className="flex-1" onClick={() => setStep(3)}>
+            <Button className="flex-1" onClick={handleNextStep2}>
               Review
             </Button>
           </div>
