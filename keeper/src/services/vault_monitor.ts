@@ -157,10 +157,19 @@ async function syncHeirs(
         console.error(`[syncHeirs] Update error for ${walletAddress}:`, error);
       }
     } else {
-      // Insert new heir
-      const { error } = await supabase
+      // Insert new heir - try with name, fallback without
+      let { error } = await supabase
         .from('heirs')
         .insert(heirData);
+      
+      if (error && error.code === 'PGRST204') {
+        // Schema cache missing 'name' column, retry without it
+        const { name: _, ...heirDataWithoutName } = heirData;
+        const result = await supabase
+          .from('heirs')
+          .insert(heirDataWithoutName);
+        error = result.error;
+      }
       
       if (error) {
         console.error(`[syncHeirs] Insert error for ${walletAddress}:`, error);
