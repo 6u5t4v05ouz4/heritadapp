@@ -91,13 +91,32 @@ export async function fetchAllVaults(): Promise<
     console.log('[Solana] Fetching all vaults from program:', config.PROGRAM_ID_PUBKEY.toBase58());
     console.log('[Solana] Using RPC:', config.SOLANA_RPC_URL);
     
-    const accounts = await (program.account as any).vault.all();
-    console.log(`[Solana] Found ${accounts.length} raw accounts`);
+    // Use getProgramAccounts directly (more reliable than Anchor's .all())
+    const accounts = await connection.getProgramAccounts(
+      config.PROGRAM_ID_PUBKEY,
+      {
+        commitment: 'confirmed',
+        filters: [
+          { dataSize: 5534 }, // Vault account size
+        ],
+      }
+    );
     
-    return accounts.map((acc: any) => ({
-      pubkey: acc.publicKey,
-      account: acc.account as VaultAccount,
-    }));
+    console.log(`[Solana] Found ${accounts.length} raw accounts via getProgramAccounts`);
+    
+    // Decode each account using Anchor
+    const results: { pubkey: PublicKey; account: VaultAccount }[] = [];
+    for (const { pubkey, account } of accounts) {
+      try {
+        const decoded = await (program.account as any).vault.fetch(pubkey);
+        results.push({ pubkey, account: decoded as VaultAccount });
+      } catch (decodeErr: any) {
+        console.error(`[Solana] Failed to decode vault ${pubkey.toBase58()}:`, decodeErr.message);
+      }
+    }
+    
+    console.log(`[Solana] Successfully decoded ${results.length} vaults`);
+    return results;
   } catch (err: any) {
     console.error('[Solana] Error fetching vaults:', err.message || err);
     return [];
