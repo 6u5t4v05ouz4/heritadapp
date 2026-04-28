@@ -96,9 +96,6 @@ export async function fetchAllVaults(): Promise<
       config.PROGRAM_ID_PUBKEY,
       {
         commitment: 'confirmed',
-        filters: [
-          { dataSize: 5534 }, // Vault account size
-        ],
       }
     );
     
