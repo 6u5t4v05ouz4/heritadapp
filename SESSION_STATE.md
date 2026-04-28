@@ -30,27 +30,34 @@ A interface do HERITA foi completamente redesenhada de um wireframe genérico (z
 - [x] **Template de env**: `.env.local.example` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ## Active Problem / Blocker
-**Vercel Deployment Protection ativado** — o frontend está requerendo autenticação Vercel para acessar. Precisa desativar em:
-https://vercel.com/6u5t4v0s-projects/frontend/settings/deployment-protection
+Nenhum blocker.
 
 ## What's Pending / Next Steps
 
-### Deploy (Em Progresso)
-1. **✅ Step 0 — Code Changes**: Commit com API route segura + ajustes do keeper (PORT, Procfile, railway.json)
-2. **✅ Step 1 — Supabase**: Schema já aplicado, env vars configuradas
-3. **✅ Step 2 — Keeper no Railway**: Deployado em `https://crypto-heranca-keeper-production.up.railway.app` (health: OK)
-4. **✅ Step 3 — Frontend no Vercel**: Deployado em `https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app`
-5. **⏳ Step 4 — End-to-End Test**: Aguardando desativação do Vercel Deployment Protection
-6. **⏳ Step 5 — Domínio Customizado**: Opcional, após E2E passar
+### Deploy (Concluído)
+1. **✅ Step 0 — Code Changes**: Commit com API route segura + ajustes do keeper
+2. **✅ Step 1 — Supabase**: Schema aplicado, env vars configuradas
+3. **✅ Step 2 — Keeper no Railway**: Deployado e healthy
+4. **✅ Step 3 — Frontend no Vercel**: Deployado e acessível
+5. **✅ Step 4 — End-to-End Test**: Passou (landing, health, vaults, CORS)
+6. **✅ Step 5 — Domínio Customizado**: `herita.xyz` configurado
 
-### Próximas Features (Pós-Deploy)
-7. **Notificações (Fase 4)**
+### Features Implementadas Nesta Sessão
+7. **✅ Editar Herdeiro (Vault Detail)**
+   - API routes: `PUT/DELETE /api/heirs/[id]` com verificação de ownership
+   - API route: `GET /api/vaults/[address]/heirs` para listar dados enriquecidos
+   - Modal de edição na página de detalhes do vault
+   - Campos editáveis: name, wallet, asset mint, allocation type/value, email, phone
+   - Botões de editar/deletar aparecem no hover do card do herdeiro
+   - Notificações (email/phone) são sincronizadas no Supabase ao editar
+
+### Próximas Features
+8. **Notificações (Fase 4)**
    - Implementar despachante (Resend/SendGrid para email, Twilio para SMS)
    - Integrar com `notification_preferences` e `notification_logs`
 
-8. **Keeper Indexing**
+9. **Keeper Indexing**
    - Escutar eventos on-chain e atualizar Supabase em tempo real
-   - Atualmente o sync é feito pelo frontend no momento da criação
 
 ## Key Decisions & Rationale
 - **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas (prerender estático). O cliente só é instanciado no momento da chamada.
@@ -111,6 +118,13 @@ https://vercel.com/6u5t4v0s-projects/frontend/settings/deployment-protection
 - **Frontend deployado no Vercel**: `https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app`
   - Env vars configuradas: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (server-only), SOLANA_NETWORK, PROGRAM_ID
 
+### Editar Herdeiro (Esta sessão)
+- `frontend/src/app/api/heirs/[id]/route.ts` (novo — PUT/DELETE com ownership verification)
+- `frontend/src/app/api/vaults/[address]/heirs/route.ts` (novo — GET heirs enriquecidos)
+- `frontend/src/app/vaults/[address]/page.tsx` (editado — modal de edição, hover actions, Supabase heirs)
+- `keeper/src/db/schema.sql` (corrigido — adicionado `updated_at` na tabela `heirs`)
+- `docs/DEPLOY-GUIDE.md` (novo — guia de deploy manual)
+
 ## Important Context
 - Repositório: https://github.com/6u5t4v05ouz4/heritadapp
 - Program ID devnet: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
@@ -118,6 +132,7 @@ https://vercel.com/6u5t4v0s-projects/frontend/settings/deployment-protection
 - Stack: Next.js 16 + React 19 + Tailwind CSS v4 + TypeScript + Anchor 0.32 + Supabase
 
 ## Deploy URLs
-- **Frontend (Vercel)**: https://frontend-f41l78ous-6u5t4v0s-projects.vercel.app
+- **Frontend (Vercel)**: https://frontend-jdx7pym9f-6u5t4v0s-projects.vercel.app
+- **Frontend (Custom Domain)**: https://herita.xyz
 - **Keeper (Railway)**: https://crypto-heranca-keeper-production.up.railway.app
 - **Supabase**: https://naotxbbzuexiaiwbmikr.supabase.co
