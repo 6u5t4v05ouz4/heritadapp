@@ -93,13 +93,13 @@ export async function fetchAllVaults(): Promise<
     
     // Use getProgramAccounts directly (more reliable than Anchor's .all())
     // Filter by vault discriminator to avoid accounts from other program versions
-    const VAULT_DISCRIMINATOR = Buffer.from([211, 8, 232, 43, 2, 152, 117, 119]);
+    const VAULT_DISCRIMINATOR = bs58.encode(Buffer.from([211, 8, 232, 43, 2, 152, 117, 119]));
     const accounts = await connection.getProgramAccounts(
       config.PROGRAM_ID_PUBKEY,
       {
         commitment: 'confirmed',
         filters: [
-          { memcmp: { offset: 0, bytes: VAULT_DISCRIMINATOR.toString('base64') } },
+          { memcmp: { offset: 0, bytes: VAULT_DISCRIMINATOR } },
         ],
       }
     );
