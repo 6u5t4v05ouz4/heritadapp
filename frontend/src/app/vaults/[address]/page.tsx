@@ -110,9 +110,13 @@ export default function VaultDetailPage() {
       if (res.ok) {
         const data = await res.json();
         setSupabaseHeirs(data.heirs || []);
+      } else {
+        console.error("[VaultDetail] Failed to load heirs:", res.status);
+        setSupabaseHeirs([]);
       }
     } catch (err) {
       console.error("[VaultDetail] Failed to load heirs:", err);
+      setSupabaseHeirs([]);
     } finally {
       setHeirsLoading(false);
     }
@@ -152,6 +156,8 @@ export default function VaultDetailPage() {
           assetMint: editForm.assetMint,
           allocationType: editForm.allocationType,
           allocationValue: Number(editForm.allocationValue),
+          email: editForm.email,
+          phone: editForm.phone,
         }),
       });
 
@@ -607,105 +613,131 @@ export default function VaultDetailPage() {
                 Heirs ({supabaseHeirs.length || vault.heirs?.length || 0})
               </h3>
             </div>
-            {heirsLoading && (
-              <span className="text-xs text-text-tertiary">Syncing...</span>
-            )}
+            <div className="flex items-center gap-2">
+              {heirsLoading && (
+                <span className="text-xs text-text-tertiary">Syncing...</span>
+              )}
+              <button
+                onClick={loadSupabaseHeirs}
+                disabled={heirsLoading}
+                className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
+
+          {/* Warning: on-chain heirs not in Supabase */}
+          {vault.heirs?.length > 0 && supabaseHeirs.length === 0 && !heirsLoading && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+              Heirs found on-chain but not synced with database. Edit/delete unavailable until synced.
+            </div>
+          )}
+
           <div className="space-y-3">
-            {supabaseHeirs.length > 0
-              ? supabaseHeirs.map((heir: any) => (
-                  <div
-                    key={heir.id}
-                    className="p-4 rounded-xl bg-bg-elevated border border-border-subtle group"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {heir.name && (
-                            <span className="font-semibold text-text-primary text-sm">
-                              {heir.name}
-                            </span>
-                          )}
-                          <Badge variant="default" className="text-[10px]">
-                            {heir.allocation_type === "percentage" ? "%" : "Fixed"}
-                          </Badge>
-                        </div>
-                        <div className="font-mono text-xs text-text-tertiary truncate">
-                          {heir.wallet_address}
-                        </div>
-                        {(heir.email || heir.phone) && (
-                          <div className="flex items-center gap-3 mt-1.5">
-                            {heir.email && (
-                              <span className="text-xs text-text-secondary">
-                                {heir.email}
-                              </span>
-                            )}
-                            {heir.phone && (
-                              <span className="text-xs text-text-secondary">
-                                {heir.phone}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-text-tertiary">
-                            Asset: {" "}
-                            <span className="font-mono">
-                              {heir.asset_mint}
-                            </span>
-                          </span>
-                          <span className="text-text-primary font-medium font-mono text-sm">
-                            {heir.allocation_value}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEditModal(heir)}
-                          className="p-1.5 rounded-lg text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors"
-                          aria-label="Edit heir"
-                          title="Edit heir"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteHeir(heir)}
-                          className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                          aria-label="Delete heir"
-                          title="Remove heir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              : vault.heirs?.map((heir: any, i: number) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-bg-elevated border border-border-subtle"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs text-text-tertiary truncate max-w-[70%]">
-                        {heir.wallet?.toBase58?.() || heir.wallet}
-                      </span>
-                      <Badge variant="default">
-                        {heir.allocationType?.percentage !== undefined ? "%" : "Fixed"}
+            {/* Supabase heirs (editable) */}
+            {supabaseHeirs.map((heir: any) => (
+              <div
+                key={heir.id}
+                className="p-4 rounded-xl bg-bg-elevated border border-border-subtle"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {heir.name ? (
+                        <span className="font-semibold text-text-primary text-sm">
+                          {heir.name}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-text-tertiary italic">
+                          Unnamed heir
+                        </span>
+                      )}
+                      <Badge variant="default" className="text-[10px]">
+                        {heir.allocation_type === "percentage" ? "%" : "Fixed"}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-text-secondary">
+                    <div className="font-mono text-xs text-text-tertiary truncate">
+                      {heir.wallet_address}
+                    </div>
+                    {(heir.email || heir.phone) && (
+                      <div className="flex items-center gap-3 mt-1.5">
+                        {heir.email && (
+                          <span className="text-xs text-text-secondary">
+                            {heir.email}
+                          </span>
+                        )}
+                        {heir.phone && (
+                          <span className="text-xs text-text-secondary">
+                            {heir.phone}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-text-tertiary">
                         Asset:{" "}
-                        <span className="font-mono text-xs text-text-tertiary">
-                          {heir.asset?.toBase58?.() || heir.asset}
+                        <span className="font-mono">
+                          {heir.asset_mint === "11111111111111111111111111111111"
+                            ? "SOL (Native)"
+                            : `${heir.asset_mint.slice(0, 6)}...${heir.asset_mint.slice(-6)}`}
                         </span>
                       </span>
-                      <span className="text-text-primary font-medium font-mono">
-                        {heir.allocationValue?.toString?.() || heir.allocationValue}
+                      <span className="text-text-primary font-medium font-mono text-sm">
+                        {heir.allocation_value}
                       </span>
                     </div>
                   </div>
-                ))}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEditModal(heir)}
+                      className="p-1.5 rounded-lg text-text-tertiary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors"
+                      aria-label="Edit heir"
+                      title="Edit heir"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteHeir(heir)}
+                      className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      aria-label="Delete heir"
+                      title="Remove heir"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* On-chain heirs fallback (not editable) */}
+            {supabaseHeirs.length === 0 &&
+              vault.heirs?.map((heir: any, i: number) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-xl bg-bg-elevated border border-border-subtle opacity-70"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-xs text-text-tertiary truncate max-w-[70%]">
+                      {heir.wallet?.toBase58?.() || heir.wallet}
+                    </span>
+                    <Badge variant="default">
+                      {heir.allocationType?.percentage !== undefined ? "%" : "Fixed"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-text-secondary">
+                      Asset:{" "}
+                      <span className="font-mono text-xs text-text-tertiary">
+                        {heir.asset?.toBase58?.() || heir.asset}
+                      </span>
+                    </span>
+                    <span className="text-text-primary font-medium font-mono">
+                      {heir.allocationValue?.toString?.() || heir.allocationValue}
+                    </span>
+                  </div>
+                </div>
+              ))}
           </div>
         </Card>
       )}
