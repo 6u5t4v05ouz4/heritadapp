@@ -131,7 +131,10 @@ export default function VaultDetailPage() {
       walletAddress: heir.wallet_address || "",
       assetMint: heir.asset_mint || "11111111111111111111111111111111",
       allocationType: heir.allocation_type === "percentage" ? "percentage" : "fixed",
-      allocationValue: heir.allocation_value?.toString() || "",
+      allocationValue:
+        heir.allocation_type === "percentage" && heir.allocation_value
+          ? (heir.allocation_value / 100).toString()
+          : heir.allocation_value?.toString() || "",
     });
     setShowEditModal(true);
   };
@@ -149,16 +152,19 @@ export default function VaultDetailPage() {
       const res = await fetch(`/api/heirs/${editingHeir.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ownerAddress: publicKey.toBase58(),
-          name: editForm.name,
-          walletAddress: editForm.walletAddress,
-          assetMint: editForm.assetMint,
-          allocationType: editForm.allocationType,
-          allocationValue: Number(editForm.allocationValue),
-          email: editForm.email,
-          phone: editForm.phone,
-        }),
+          body: JSON.stringify({
+            ownerAddress: publicKey.toBase58(),
+            name: editForm.name,
+            walletAddress: editForm.walletAddress,
+            assetMint: editForm.assetMint,
+            allocationType: editForm.allocationType,
+            allocationValue:
+              editForm.allocationType === "percentage"
+                ? Number(editForm.allocationValue) * 100
+                : Number(editForm.allocationValue),
+            email: editForm.email,
+            phone: editForm.phone,
+          }),
       });
 
       if (!res.ok) {
@@ -684,7 +690,9 @@ export default function VaultDetailPage() {
                         </span>
                       </span>
                       <span className="text-text-primary font-medium font-mono text-sm">
-                        {heir.allocation_value}
+                        {heir.allocation_type === "percentage"
+                          ? `${(heir.allocation_value / 100).toFixed(0)}%`
+                          : heir.allocation_value}
                       </span>
                     </div>
                   </div>
@@ -733,7 +741,9 @@ export default function VaultDetailPage() {
                       </span>
                     </span>
                     <span className="text-text-primary font-medium font-mono">
-                      {heir.allocationValue?.toString?.() || heir.allocationValue}
+                      {heir.allocationType?.percentage !== undefined
+                        ? `${(Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 100).toFixed(0)}%`
+                        : heir.allocationValue?.toString?.() || heir.allocationValue}
                     </span>
                   </div>
                 </div>
@@ -795,7 +805,12 @@ export default function VaultDetailPage() {
                     setEditForm((f) => ({ ...f, assetMint: e.target.value }))
                   }
                   placeholder="Token mint address"
+                  disabled
+                  className="opacity-60 cursor-not-allowed"
                 />
+                <p className="text-[10px] text-text-tertiary mt-1">
+                  Asset cannot be changed after creation
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

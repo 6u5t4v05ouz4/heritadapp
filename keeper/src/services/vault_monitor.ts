@@ -154,7 +154,11 @@ async function syncHeirs(
         .eq('id', existing.id);
       
       if (error) {
-        console.error(`[syncHeirs] Update error for ${walletAddress}:`, error);
+        console.error(`[syncHeirs] Update error for ${walletAddress}:`, error.message);
+        // If updated_at column is missing, try update ignoring the trigger error
+        if (error.message?.includes('updated_at')) {
+          console.warn(`[syncHeirs] Trigger error for ${walletAddress}, skipping updated_at`);
+        }
       }
     } else {
       // Insert new heir - try with name, fallback without

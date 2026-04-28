@@ -68,10 +68,10 @@ export async function GET(
       .eq("vault_id", vault.id)
       .eq("recipient_type", "heir");
 
-    // Merge notifications into heirs
+    // Merge notifications into heirs by heir_wallet_address
     const heirsWithContacts = (heirs || []).map((heir: any) => {
       const heirNotifications = (notifications || []).filter(
-        (n: any) => n.address === heir.wallet_address || n.address === heir.name
+        (n: any) => n.heir_wallet_address === heir.wallet_address
       );
       return {
         ...heir,

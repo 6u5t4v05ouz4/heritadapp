@@ -95,12 +95,15 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
     recipient_type TEXT NOT NULL CHECK (recipient_type IN ('owner', 'heir')),
     channel TEXT NOT NULL CHECK (channel IN ('email', 'telegram', 'sms')),
     address TEXT NOT NULL,
+    heir_wallet_address TEXT,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(vault_id, heir_wallet_address, channel)
 );
 
 CREATE INDEX IF NOT EXISTS idx_notif_vault ON notification_preferences(vault_id);
+CREATE INDEX IF NOT EXISTS idx_notif_heir_wallet ON notification_preferences(heir_wallet_address);
 
 -- ============================================================
 -- Table: notification_logs

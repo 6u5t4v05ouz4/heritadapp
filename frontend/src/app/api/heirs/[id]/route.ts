@@ -108,12 +108,13 @@ export async function PUT(
         .single();
 
       if (heirData) {
-        // Delete old notifications for this heir (matching by wallet or old name)
+        // Delete old notifications for THIS SPECIFIC HEIR only
         await supabase
           .from("notification_preferences")
           .delete()
           .eq("vault_id", heirData.vault_id)
-          .eq("recipient_type", "heir");
+          .eq("recipient_type", "heir")
+          .eq("heir_wallet_address", heirData.wallet_address);
 
         // Insert new notifications
         const notifications = [];
@@ -123,6 +124,7 @@ export async function PUT(
             recipient_type: "heir",
             channel: "email",
             address: email,
+            heir_wallet_address: heirData.wallet_address,
           });
         }
         if (phone) {
@@ -131,6 +133,7 @@ export async function PUT(
             recipient_type: "heir",
             channel: "sms",
             address: phone,
+            heir_wallet_address: heirData.wallet_address,
           });
         }
 
@@ -178,28 +181,20 @@ export async function DELETE(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    // Also delete associated notification preferences
+    // Also delete associated notification preferences for this specific heir
     const { data: heir } = await supabase
       .from("heirs")
-      .select("vault_id")
+      .select("vault_id, wallet_address")
       .eq("id", heirId)
       .single();
 
     if (heir) {
-      // Find this heir's wallet to delete notifications
-      const { data: heirData } = await supabase
-        .from("heirs")
-        .select("wallet_address")
-        .eq("id", heirId)
-        .single();
-
-      if (heirData) {
-        await supabase
-          .from("notification_preferences")
-          .delete()
-          .eq("vault_id", heir.vault_id)
-          .eq("recipient_type", "heir");
-      }
+      await supabase
+        .from("notification_preferences")
+        .delete()
+        .eq("vault_id", heir.vault_id)
+        .eq("recipient_type", "heir")
+        .eq("heir_wallet_address", heir.wallet_address);
     }
 
     const { error } = await supabase.from("heirs").delete().eq("id", heirId);
