@@ -22,6 +22,14 @@ export async function syncVaults(): Promise<{
   console.log('[Monitor] Starting vault sync...');
   
   const vaults = await fetchAllVaults();
+  console.log(`[Monitor] Found ${vaults.length} vaults on-chain`);
+  
+  if (vaults.length > 0) {
+    vaults.forEach(({ pubkey, account }) => {
+      console.log(`[Monitor] Vault ${pubkey.toBase58()}: owner=${account.owner.toBase58()}, heirs=${account.heirs.length}`);
+    });
+  }
+  
   let synced = 0;
   let errors = 0;
 
@@ -90,7 +98,10 @@ async function syncHeirs(
   vaultId: string,
   heirs: VaultAccount['heirs']
 ): Promise<void> {
+  console.log(`[syncHeirs] Syncing ${heirs.length} heirs for vault ${vaultId}`);
+  
   if (heirs.length === 0) {
+    console.log(`[syncHeirs] No heirs on-chain, deleting all from Supabase`);
     await supabase.from('heirs').delete().eq('vault_id', vaultId);
     return;
   }
