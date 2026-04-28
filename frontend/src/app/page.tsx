@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Shield, Clock, Users, Coins, ArrowRight } from "lucide-react";
@@ -180,7 +181,13 @@ export default function Home() {
       <footer className="border-t border-border-subtle py-8">
         <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-text-tertiary" />
+            <Image
+              src="/logo.png"
+              alt="HERITA Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8 opacity-70 grayscale"
+            />
             <span className="text-sm font-semibold text-text-tertiary">HERITA</span>
           </div>
           <p className="text-xs text-text-tertiary">
