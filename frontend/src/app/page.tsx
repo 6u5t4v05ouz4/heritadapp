@@ -192,38 +192,59 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border-subtle py-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
+      <footer className="bg-bg-surface/50 border-t border-border-subtle pt-8 pb-12 mt-12">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
+          
+          {/* Logo */}
+          <div className="mb-8">
             <Image
               src="/logo.png"
               alt="HERITA Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8 opacity-70 grayscale"
+              width={96}
+              height={96}
+              className="w-24 h-24 opacity-80"
             />
-            <span className="text-sm font-semibold text-text-tertiary">HERITA</span>
           </div>
-          
-          <div className="flex items-center gap-5">
-            <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="X (Twitter)">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+
+          {/* Social Links */}
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mb-8">
+            <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="X (Twitter)">
+              <svg className="w-5 h-5 group-hover:text-accent-primary transition-colors" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
+              <span className="text-sm font-medium">X (Twitter)</span>
             </a>
-            <a href="https://www.youtube.com/channel/UCpG1-nHq2m9REQZ3jf7TXlQ" target="_blank" rel="noopener noreferrer" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="YouTube">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            
+            <a href="https://www.youtube.com/channel/UCpG1-nHq2m9REQZ3jf7TXlQ" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="YouTube">
+              <svg className="w-5 h-5 group-hover:text-accent-primary transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93-.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
               </svg>
+              <span className="text-sm font-medium">YouTube</span>
             </a>
-            <a href="mailto:heritadapp@gmail.com" className="text-text-tertiary hover:text-text-primary transition-colors" aria-label="Email">
-              <Mail className="w-5 h-5" />
+            
+            <a href="mailto:heritadapp@gmail.com" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="Email">
+              <Mail className="w-5 h-5 group-hover:text-accent-primary transition-colors" />
+              <span className="text-sm font-medium">Email</span>
             </a>
           </div>
 
-          <p className="text-xs text-text-tertiary">
-            Experimental protocol on Devnet. Use at your own risk.
-          </p>
+          {/* Navigation Links */}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-text-secondary mb-12">
+            <Link href="/docs" className="hover:text-text-primary transition-colors">Docs</Link>
+            <span className="w-1 h-1 rounded-full bg-border-subtle" />
+            <Link href="/vaults/create" className="hover:text-text-primary transition-colors">Create Vault</Link>
+            <span className="w-1 h-1 rounded-full bg-border-subtle" />
+            <a href="#how-it-works" className="hover:text-text-primary transition-colors">How it works</a>
+          </div>
+
+          {/* Copyright & Disclaimer */}
+          <div className="w-full flex flex-col md:flex-row items-center justify-between text-xs text-text-tertiary pt-6 border-t border-border-subtle/50">
+            <p>© {new Date().getFullYear()} HERITA. All rights reserved.</p>
+            <p className="mt-2 md:mt-0 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
+              Experimental protocol on Devnet
+            </p>
+          </div>
         </div>
       </footer>
     </div>
