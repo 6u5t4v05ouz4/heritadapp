@@ -29,7 +29,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import StepIndicator from "@/components/ui/StepIndicator";
 import Badge from "@/components/ui/Badge";
-import { useToast } from "@/hooks/useToast";
+import { useEnhancedToast } from "@/hooks/useEnhancedToast";
 
 interface HeirInput {
   name: string;
@@ -45,7 +45,7 @@ export default function CreateVaultPage() {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
   const { initializeVault } = useVault();
-  const { success, error: showError, ToastContainer } = useToast();
+  const { success, error: showError, warning, ToastContainer } = useEnhancedToast();
 
   const [step, setStep] = useState(1);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString());
@@ -133,7 +133,7 @@ export default function CreateVaultPage() {
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
-      showError(validationError);
+      showError("Validation error", validationError);
       return;
     }
     if (!confirmed) {
@@ -176,12 +176,19 @@ export default function CreateVaultPage() {
         }
       }
 
-      success("Vault created successfully!");
+      if (tx) {
+        success("Vault created successfully!", undefined, tx);
+      } else {
+        warning(
+          "Vault created! (delayed confirmation)",
+          "The network was slow, but your vault was created successfully. Redirecting..."
+        );
+      }
       router.push(`/vaults/${vaultPDA.toBase58()}`);
     } catch (err: any) {
       const msg = err.message || "Error creating vault";
       setError(msg);
-      showError(msg);
+      showError("Failed to create vault", msg);
     } finally {
       setLoading(false);
     }
@@ -189,34 +196,34 @@ export default function CreateVaultPage() {
 
   const handleNextStep2 = () => {
     if (heirs.length === 0) {
-      showError("Add at least one heir");
+      showError("Validation error", "Add at least one heir");
       return;
     }
     
     const wallets = heirs.map((h) => h.wallet);
     if (new Set(wallets).size !== wallets.length) {
-      showError("Heirs cannot have duplicate addresses");
+      showError("Validation error", "Heirs cannot have duplicate addresses");
       return;
     }
 
     for (let i = 0; i < heirs.length; i++) {
       const h = heirs[i];
       if (!h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.wallet.trim() || !h.allocationValue) {
-        showError(`Please fill all fields (Name, Email, Phone, Wallet, Value) for Heir #${i + 1}`);
+        showError("Validation error", `Please fill all fields (Name, Email, Phone, Wallet, Value) for Heir #${i + 1}`);
         return;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
-        showError(`Heir #${i + 1} has an invalid email address`);
+        showError("Validation error", `Heir #${i + 1} has an invalid email address`);
         return;
       }
       if (Number(h.allocationValue) <= 0) {
-        showError(`Heir #${i + 1} must have a percentage > 0`);
+        showError("Validation error", `Heir #${i + 1} must have a percentage > 0`);
         return;
       }
     }
 
     if (percentageSum !== 100) {
-      showError(`Total percentage must be exactly 100%. Current: ${percentageSum}%`);
+      showError("Validation error", `Total percentage must be exactly 100%. Current: ${percentageSum}%`);
       return;
     }
 
