@@ -24,6 +24,7 @@ import {
   Pencil,
   Trash2,
   X,
+  ExternalLink,
 } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import PageHeader from "@/components/layout/PageHeader";
@@ -34,7 +35,8 @@ import Badge from "@/components/ui/Badge";
 import CopyButton from "@/components/ui/CopyButton";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Skeleton from "@/components/ui/Skeleton";
-import { useToast } from "@/hooks/useToast";
+import { useEnhancedToast } from "@/hooks/useEnhancedToast";
+import { getAddressExplorerUrl, getTxExplorerUrl } from "@/lib/explorer";
 
 export default function VaultDetailPage() {
   const params = useParams();
@@ -42,7 +44,7 @@ export default function VaultDetailPage() {
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
   const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
-  const { success, error: showError, ToastContainer } = useToast();
+  const { success, error: showError, ToastContainer } = useEnhancedToast();
 
   const vaultAddress = params.address as string;
   const [vault, setVault] = useState<any>(null);
@@ -209,7 +211,7 @@ export default function VaultDetailPage() {
     setActionLoading("deposit");
     try {
       const tx = await depositSol(new PublicKey(vaultAddress), Number(depositAmount));
-      success(`Deposit sent! Tx: ${tx.slice(0, 20)}...`);
+      success("Deposit sent!", `${depositAmount} SOL deposited`, tx);
       setDepositAmount("");
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
@@ -218,7 +220,7 @@ export default function VaultDetailPage() {
     } catch (err: any) {
       const msg = err.message || "Error depositing";
       setError(msg);
-      showError(msg);
+      showError("Deposit failed", msg);
     } finally {
       setActionLoading("");
     }
@@ -229,13 +231,13 @@ export default function VaultDetailPage() {
     setActionLoading("heartbeat");
     try {
       const tx = await heartbeat(new PublicKey(vaultAddress));
-      success(`Heartbeat sent! Tx: ${tx.slice(0, 20)}...`);
+      success("Heartbeat sent!", "Inactivity timer reset", tx);
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
     } catch (err: any) {
       const msg = err.message || "Heartbeat error";
       setError(msg);
-      showError(msg);
+      showError("Heartbeat failed", msg);
     } finally {
       setActionLoading("");
     }
@@ -247,12 +249,12 @@ export default function VaultDetailPage() {
     setActionLoading("cancel");
     try {
       const tx = await cancelVault(new PublicKey(vaultAddress));
-      success(`Vault canceled! Tx: ${tx.slice(0, 20)}...`);
+      success("Vault canceled!", "All funds returned to owner", tx);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
       const msg = err.message || "Error canceling";
       setError(msg);
-      showError(msg);
+      showError("Cancel failed", msg);
     } finally {
       setActionLoading("");
     }
@@ -269,12 +271,12 @@ export default function VaultDetailPage() {
       }) || [];
 
       const tx = await claim(new PublicKey(vaultAddress), heirPubkeys);
-      success(`Claim executed! Tx: ${tx.slice(0, 20)}...`);
+      success("Claim executed!", "Assets distributed to heirs", tx);
       setTimeout(() => router.push("/vaults"), 2000);
     } catch (err: any) {
       const msg = err.message || "Error executing claim";
       setError(msg);
-      showError(msg);
+      showError("Claim failed", msg);
     } finally {
       setActionLoading("");
     }
@@ -416,6 +418,15 @@ export default function VaultDetailPage() {
                 displayText={`${vaultAddress.slice(0, 8)}...${vaultAddress.slice(-8)}`}
                 className="text-xs font-mono text-text-tertiary"
               />
+              <a
+                href={getAddressExplorerUrl(vaultAddress)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent-primary transition-colors"
+                title="View on Solana Explorer"
+              >
+                <ExternalLink className="w-3 h-3" />
+              </a>
               <Badge variant={statusBadge as any}>{statusLabel}</Badge>
             </div>
           </div>

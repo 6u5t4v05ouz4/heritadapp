@@ -34,6 +34,12 @@ export default function Navbar() {
                 My Vaults
               </Link>
               <Link
+                href="/heir"
+                className="text-sm text-text-secondary hover:text-text-primary transition-colors font-medium"
+              >
+                Heir Dashboard
+              </Link>
+              <Link
                 href="/vaults/create"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors font-medium"
               >
