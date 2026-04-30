@@ -271,6 +271,9 @@ pub mod crypto_heranca {
         pub executor: Signer<'info>,
         #[account(mut, seeds = [b"vault", vault.owner.as_ref(), vault.seed.to_le_bytes().as_ref()], bump = vault.bump, constraint = vault.is_active() @ CryptoHerancaError::VaultNotActive)]
         pub vault: Account<'info, Vault>,
+        /// CHECK: Instruction sysvar — usado para verificar assinatura Ed25519Program
+        #[account(address = anchor_lang::solana_program::sysvar::instructions::ID @ CryptoHerancaError::InvalidHeartbeatSignature)]
+        pub instruction_sysvar: AccountInfo<'info>,
         pub system_program: Program<'info, System>,
     }
 
