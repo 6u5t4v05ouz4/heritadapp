@@ -76,22 +76,25 @@ body {
 
 /* Wallet adapter custom styles */
 .wallet-adapter-button {
-  border-radius: 12px !important;
+  border-radius: 4px !important;
   height: 44px !important;
   font-family: var(--font-geist-sans), system-ui, sans-serif !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-size: 14px !important;
-  background: #161F2E !important;
-  color: #F8FAFC !important;
-  border: 1px solid #1E293B !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%) !important;
+  color: #000000 !important;
+  border: none !important;
   transition: all 200ms ease-out !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
 .wallet-adapter-button:hover {
-  background: #1E293B !important;
-  border-color: #334155 !important;
+  background: linear-gradient(135deg, #E5C158 0%, #B88A1D 100%) !important;
 }
 .wallet-adapter-button-trigger {
-  background: #161F2E !important;
+  background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%) !important;
+  color: #000000 !important;
 }
 .wallet-adapter-dropdown-list {
   background: #0F1623 !important;

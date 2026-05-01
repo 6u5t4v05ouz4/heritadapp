@@ -15,153 +15,133 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-bg-surface to-bg-base" />
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-primary/10 border border-accent-primary/20 text-accent-primary text-xs font-medium mb-6">
-            <Shield className="w-3.5 h-3.5" />
-            Devnet Protocol
-          </div>
-
-          <h1 className="text-4xl md:text-6xl font-extrabold text-text-primary tracking-tight leading-[1.1] max-w-3xl">
-            Your digital legacy,
+      <section className="relative overflow-hidden bg-black py-20 md:py-32">
+        <div className="absolute top-0 inset-x-0 h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D4AF37]/10 via-black to-black opacity-60 pointer-events-none" />
+        <div className="relative max-w-5xl mx-auto px-4 md:px-6 flex flex-col items-center text-center">
+          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] font-playfair font-bold text-white tracking-tight leading-[1.05] mb-8">
+            Your legacy.
             <br />
-            <span className="text-accent-primary">protected forever</span>
+            Secured.
           </h1>
 
-          <p className="mt-5 text-lg text-text-secondary max-w-xl leading-relaxed">
-            HERITA is an on-chain inheritance protocol on Solana. Protect your digital assets
-            and ensure your loved ones have access when needed.
+          <p className="text-lg md:text-2xl text-gray-400 max-w-3xl italic font-serif leading-relaxed mb-12">
+            Automated inheritance for the digital era. Protect your wealth
+            <br className="hidden md:block" />
+            with sovereign-grade smart contract vaults.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center gap-3">
-            {!connected ? (
-              <>
-                <ClientOnly
-                  fallback={
-                    <Button variant="primary" size="lg" disabled>
-                      Connect Wallet
-                    </Button>
-                  }
-                >
-                  <WalletMultiButton />
-                </ClientOnly>
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all duration-200"
-                >
-                  Explore Protocol
-                </a>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/vaults"
-                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold text-text-primary bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200"
-                >
-                  View My Vaults
-                </Link>
-                <Link
-                  href="/vaults/create"
-                  className="inline-flex items-center justify-center gap-2 h-12 px-8 text-base rounded-xl font-semibold border-1 border-border-subtle bg-[#f0f0f0] text-black hover:brightness-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] transition-all duration-200"
-                >
-                  Create my Vault
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </>
-            )}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-2xl mx-auto">
+            <Link
+              href="/vaults/create"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-sm font-bold tracking-widest uppercase bg-[#C89B3C] hover:bg-[#b08835] text-black transition-colors rounded-sm"
+            >
+              Initiate Vault
+            </Link>
+            <Link
+              href="#protocol"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-10 py-4 text-sm font-bold tracking-widest uppercase border border-[#C89B3C] text-[#C89B3C] hover:bg-[#C89B3C]/10 transition-colors rounded-sm"
+            >
+              Explore Protocol
+            </Link>
           </div>
 
           {/* Social proof */}
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
-            <Card padding="default" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <Shield className="w-4 h-4 text-emerald-400" />
+          <div className="mt-20 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl opacity-80">
+            <Card padding="default" className="flex items-center gap-3 bg-white/5 border-white/10">
+              <div className="w-9 h-9 rounded-lg bg-[#C89B3C]/10 border border-[#C89B3C]/20 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-[#C89B3C]" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">Self-custody</p>
-                <p className="text-xs text-text-tertiary">You stay in control</p>
+                <p className="text-sm font-semibold text-white">Self-custody</p>
+                <p className="text-xs text-gray-400">You stay in control</p>
               </div>
             </Card>
-            <Card padding="default" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-                <Users className="w-4 h-4 text-sky-400" />
+            <Card padding="default" className="flex items-center gap-3 bg-white/5 border-white/10">
+              <div className="w-9 h-9 rounded-lg bg-[#C89B3C]/10 border border-[#C89B3C]/20 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-[#C89B3C]" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">Multi-heir</p>
-                <p className="text-xs text-text-tertiary">Up to 10 heirs</p>
+                <p className="text-sm font-semibold text-white">Multi-heir</p>
+                <p className="text-xs text-gray-400">Up to 10 heirs</p>
               </div>
             </Card>
-            <Card padding="default" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4 text-amber-400" />
+            <Card padding="default" className="flex items-center gap-3 bg-white/5 border-white/10">
+              <div className="w-9 h-9 rounded-lg bg-[#C89B3C]/10 border border-[#C89B3C]/20 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 text-[#C89B3C]" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">Smart timer</p>
-                <p className="text-xs text-text-tertiary">On-chain heartbeat</p>
+                <p className="text-sm font-semibold text-white">Smart timer</p>
+                <p className="text-xs text-gray-400">On-chain heartbeat</p>
               </div>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-16 md:py-24">
-        <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-text-primary">How it works</h2>
-            <p className="mt-2 text-text-secondary">Four steps to protect your legacy</p>
+      {/* The Protocol */}
+      <section id="protocol" className="py-20 md:py-32 bg-[#050505]">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-24">
+            <h2 className="text-5xl md:text-6xl lg:text-7xl font-playfair font-bold text-white tracking-[0.1em] uppercase mb-8">
+              The Protocol
+            </h2>
+            <p className="text-lg md:text-xl text-gray-400 max-w-4xl mx-auto italic font-serif leading-relaxed">
+              A sophisticated five-pillar architecture designed for institutional security and absolute legacy continuity.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8">
             {[
               {
-                step: "01",
-                icon: <Shield className="w-5 h-5 text-accent-primary" />,
-                title: "Connect your wallet",
-                desc: "Use Phantom, Solflare, or any Solana-compatible wallet.",
+                step: "0 1",
+                title: "Connect Wallet",
+                desc: "Link your premium digital vault with your secure wallet address.",
               },
               {
-                step: "02",
-                icon: <Users className="w-5 h-5 text-accent-warm" />,
-                title: "Set up heirs",
-                desc: "Add wallet addresses and define asset allocation.",
+                step: "0 2",
+                title: "Create Vault",
+                desc: "Initialize a personalized digital inheritance contract.",
               },
               {
-                step: "03",
-                icon: <Coins className="w-5 h-5 text-emerald-400" />,
-                title: "Deposit assets",
-                desc: "Send SOL or tokens to the vault. They stay safe on-chain.",
+                step: "0 3",
+                title: "Deposit Assets",
+                desc: "Transfer your wealth into the protected legacy protocol.",
               },
               {
-                step: "04",
-                icon: <Clock className="w-5 h-5 text-sky-400" />,
-                title: "Heirs claim",
-                desc: "If inactive, heirs can execute the claim.",
+                step: "0 4",
+                title: "Send Heartbeat",
+                desc: "Verify your presence at regular intervals to maintain control.",
               },
-            ].map((item) => (
-              <Card key={item.step} padding="lg" className="relative">
-                <span className="absolute top-4 right-4 text-xs font-mono text-text-tertiary">
+              {
+                step: "0 5",
+                title: "Automatic Inheritance",
+                desc: "Assets are seamlessly transferred if the heartbeat expires.",
+              },
+            ].map((item, index) => (
+              <div key={item.step} className="flex flex-col text-left group">
+                <span className="text-[11px] md:text-xs font-semibold tracking-[0.2em] text-[#D4AF37] mb-4">
                   {item.step}
                 </span>
-                <div className="w-10 h-10 rounded-xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-4">
-                  {item.icon}
-                </div>
-                <h3 className="text-base font-semibold text-text-primary mb-2">{item.title}</h3>
-                <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
-              </Card>
+                <h3 className="text-sm md:text-[15px] font-playfair font-bold text-gray-200 uppercase tracking-widest mb-4">
+                  {item.title}
+                </h3>
+                <div className="w-full h-px bg-[#1E293B] group-hover:bg-[#D4AF37] transition-colors duration-500 mb-4" />
+                <p className="text-[13px] text-gray-400 leading-relaxed font-sans pr-2">
+                  {item.desc}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 border-t border-border-subtle">
+      <section className="py-16 md:py-24 border-t border-white/5 bg-black">
         <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
+          <h2 className="text-3xl md:text-4xl font-playfair font-bold text-white tracking-wide mb-4">
             Ready to protect your legacy?
           </h2>
-          <p className="text-text-secondary mb-8 max-w-lg mx-auto">
+          <p className="text-gray-400 mb-8 max-w-lg mx-auto">
             Create your first digital inheritance vault in minutes.
             No setup fees, only Solana network gas.
           </p>
@@ -192,58 +172,71 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-bg-surface/50 border-t border-border-subtle pt-8 pb-12 mt-12">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
+      <footer className="border-t border-white/5 bg-[#050505] py-16">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-10">
           
-          {/* Logo */}
-          <div className="mb-8">
-            <Image
-              src="/logo.png"
-              alt="HERITA Logo"
-              width={96}
-              height={96}
-              className="w-24 h-24 opacity-80"
-            />
-          </div>
-
-          {/* Social Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mb-8">
-            <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="X (Twitter)">
-              <svg className="w-5 h-5 group-hover:text-accent-primary transition-colors" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-              <span className="text-sm font-medium">X (Twitter)</span>
-            </a>
+          {/* Brand & Socials */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+            <div className="flex items-center gap-4 group cursor-pointer">
+              <div className="p-1 rounded-full border border-[#D4AF37]/40 group-hover:border-[#D4AF37] transition-colors">
+                <Image
+                  src="/logo.png"
+                  alt="HERITA Logo"
+                  width={36}
+                  height={36}
+                  className="w-9 h-9 rounded-full group-hover:opacity-90 transition-opacity"
+                />
+              </div>
+              <span className="text-xl md:text-[22px] font-bold tracking-[0.25em] text-[#D4AF37] font-playfair">
+                HERITA
+              </span>
+            </div>
             
-            <a href="https://www.youtube.com/channel/UCpG1-nHq2m9REQZ3jf7TXlQ" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="YouTube">
-              <svg className="w-5 h-5 group-hover:text-accent-primary transition-colors" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93-.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-              <span className="text-sm font-medium">YouTube</span>
-            </a>
-            
-            <a href="mailto:heritadapp@gmail.com" className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors group" aria-label="Email">
-              <Mail className="w-5 h-5 group-hover:text-accent-primary transition-colors" />
-              <span className="text-sm font-medium">Email</span>
-            </a>
+            <div className="flex items-center gap-6 sm:pl-8 sm:border-l border-white/10">
+              <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-[#D4AF37] transition-colors" aria-label="X (Twitter)">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+              <a href="https://www.youtube.com/channel/UCpG1-nHq2m9REQZ3jf7TXlQ" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-[#D4AF37] transition-colors" aria-label="YouTube">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93-.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              </a>
+              <a href="mailto:heritadapp@gmail.com" className="text-gray-500 hover:text-[#D4AF37] transition-colors" aria-label="Email">
+                <Mail className="w-5 h-5" />
+              </a>
+            </div>
           </div>
 
-          {/* Navigation Links */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-text-secondary mb-12">
-            <Link href="/docs" className="hover:text-text-primary transition-colors">Docs</Link>
-            <span className="w-1 h-1 rounded-full bg-border-subtle" />
-            <Link href="/vaults/create" className="hover:text-text-primary transition-colors">Create Vault</Link>
-            <span className="w-1 h-1 rounded-full bg-border-subtle" />
-            <a href="#how-it-works" className="hover:text-text-primary transition-colors">How it works</a>
-          </div>
-
-          {/* Copyright & Disclaimer */}
-          <div className="w-full flex flex-col md:flex-row items-center justify-between text-xs text-text-tertiary pt-6 border-t border-border-subtle/50">
-            <p>© {new Date().getFullYear()} HERITA. All rights reserved.</p>
-            <p className="mt-2 md:mt-0 flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
-              Experimental protocol on Devnet
-            </p>
+          {/* Links & Info */}
+          <div className="flex flex-col items-center md:items-end gap-4 mt-6 md:mt-0 text-center md:text-right">
+            <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 sm:gap-4">
+              <Link href="/docs" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
+                Docs
+              </Link>
+              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-white/10" />
+              <Link href="/vaults/create" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
+                Create Vault
+              </Link>
+              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-white/10" />
+              <Link href="/docs/how-it-works" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
+                How it works
+              </Link>
+              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-white/10" />
+              <Link href="/privacy" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
+                Privacy Policy
+              </Link>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs text-gray-600 flex items-center justify-center md:justify-end gap-2">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-pulse" />
+                Experimental protocol on Devnet. Use at your own risk.
+              </p>
+              <p className="text-xs text-gray-700">
+                © {new Date().getFullYear()} HERITA. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>

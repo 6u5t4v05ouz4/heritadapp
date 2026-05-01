@@ -6,7 +6,7 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-screen bg-bg-base">
+    <div className="flex flex-col min-h-screen bg-[#050505]">
       {/* We reuse the main Header from the app or create a specific one. For simplicity, we assume the main layout header is present above this if it's in the standard structure, or we build a layout specific container here. */}
       {/* In Next.js App Router, layout.tsx wraps page.tsx. The main header might be in app/layout.tsx. If so, it will appear automatically. */}
       
