@@ -45,8 +45,12 @@ async function retryRpc(
       if (err.message?.includes("Unauthorized")) throw err;
       if (err.message?.includes("Unknown action")) throw err;
       if (err.message?.includes("already in use")) throw err;
-      if (err.message?.includes("already been processed")) throw err;
       if (err.message?.includes("Program not deployed")) throw err;
+      // "Already processed" = tx já foi enviada e está na rede, não é erro
+      if (err.message?.includes("already been processed")) {
+        console.log("[retryRpc] Transaction already processed, considering success");
+        return "ALREADY_PROCESSED";
+      }
       
       // Retry em erros de conexão/wallet
       if (i < maxRetries - 1) {
@@ -183,7 +187,7 @@ export function useVault() {
           }
         });
       } catch (retryErr: any) {
-        // Recovery: se o vault PDA foi criado apesar do erro (ex: "already processed"),
+        // Recovery: se o vault PDA foi criado apesar do erro,
         // consideramos sucesso e retornamos o PDA para o redirecionamento.
         const accountNow = await connection.getAccountInfo(vaultPDA);
         if (accountNow) {
@@ -194,6 +198,11 @@ export function useVault() {
           return { tx: "", vaultPDA };
         }
         throw retryErr;
+      }
+
+      // Se o retry retornou "ALREADY_PROCESSED", a tx foi enviada e está na rede
+      if (tx === "ALREADY_PROCESSED") {
+        return { tx: "", vaultPDA };
       }
 
       return { tx, vaultPDA };

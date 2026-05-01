@@ -1,149 +1,156 @@
 # Session State
 
-> Last updated: 2026-04-28
+> Last updated: 2026-04-30
 > Session started: 2026-04-26 (UI Redesign + Supabase Integration)
+> Session continued: 2026-04-30 (Contract Finalization + Security Hardening)
 
 ## Current Task
-**Fix: Claim Distribution + Edit Heir Feature — Crypto-Heranca**
+**Finalização do Crypto-Heranca: Contrato, Supabase, Keeper, Frontend**
 
-A distribuição de claims foi corrigida para calcular porcentagens corretamente sobre a base fixa (não sobre saldo decrescente). O sistema de notificações foi refatorado para usar `heir_wallet_address` ao invés de matching por email/nome. Feature de editar herdeiro implementada e testada.
+Foco em finalizar o protocolo para deploy mainnet: corrigir gaps no contrato, endurecer segurança do Supabase, integrar keeper com verificação Ed25519 real, e melhorar UX do frontend com dashboard para herdeiros.
+
+---
 
 ## What Was Done
 
-### UI/UX Redesign (Fases 1-4 do UI-REDESIGN-PLAN.md)
-- [x] **Design System**: Paleta dark-first customizada (`#080C14` base, sky `#38BDF8` accent, warm amber `#FBBF24`), tipografia Geist Sans/Mono, grid 4px.
-- [x] **Componentes Base**: Button, Card, Badge, Input, Skeleton, EmptyState, CopyButton, ProgressBar, Toast, StepIndicator, WalletButton.
-- [x] **Layout**: Navbar fixo com blur backdrop, PageHeader reutilizável.
-- [x] **Home (`/`)**: Hero com gradiente, social proof cards (Self-custody, Multi-heir, Smart Timer), seção "How it works" em 4 cards, CTA duplo, footer minimal. Tudo em EN-US.
-- [x] **Vaults List (`/vaults`)**: Stats row (total vaults, SOL protegido, próximo vencimento), grid de VaultCard com timer visual dinâmico (cor verde → âmbar → vermelho), empty state ilustrado, skeleton loading com shimmer.
-- [x] **Create Vault (`/vaults/create`)**: Wizard 3 steps com StepIndicator visual, layout 2 colunas em desktop, validação de email em tempo real, checkbox de confirmação. **Novos campos de contato por herdeiro**: Full Name, Email, Phone.
-- [x] **Vault Detail (`/vaults/[address]`)**: Timer hero grande, dashboard grid (saldo + configurações), actions panel 2×2 (Deposit SOL, Heartbeat, Cancel Vault, Execute Claim), lista de herdeiros, timeline de atividade. Toast notifications para sucesso/erro.
-- [x] **Wallet Adapter Customizado**: CSS override para combinar com o tema dark (bordas, cores, modais).
+### Sprint 1 — Contrato: Gaps e Correções
+- [x] **Gap 2 (Verify)**: `initialize_token_account` já registra mint em `vault.assets` — verificado que o código já faz isso corretamente
+- [x] **Gap 4 (Fix)**: Verificação Ed25519 real implementada em `heartbeat.rs`
+  - Antes: placeholder `return Ok(())` (não verificava nada!)
+  - Agora: lê sysvar de instructions, valida que instruction anterior foi `Ed25519Program`, extrai pubkey/signature, verifica match
+  - Modalidade A (frontend): proof passado como parâmetro — verifica bytes brutos
+  - Modalidade B (keeper): proof é `null` — usa `verify_ed25519_instruction` com sysvar
+- [x] **Build WSL**: `cargo build-sbf` passa — `target/deploy/crypto_heranca.so` gerado
 
-### Integração Supabase (Frontend)
-- [x] **Schema SQL atualizado**: Coluna `name` adicionada à tabela `heirs`. Script tornado idempotente (`DROP IF EXISTS` em policies/triggers, `EXCEPTION WHEN duplicate_object` em realtime).
-- [x] **Coluna `heir_wallet_address`** adicionada em `notification_preferences` para matching correto de notificações por wallet (não por email).
-- [x] **Cliente Supabase no frontend**: `lib/supabase.ts` com lazy client (não quebra SSR/build sem env vars).
-- [x] **Sync de vault**: `lib/vault-sync.ts` — após `initializeVault()` on-chain, sincroniza automaticamente:
-  1. `vaults` (address, owner, seed, inactivity, keeper fee, gas reserve, status)
-  2. `heirs` (name, wallet, asset, allocation type/value)
-  3. `notification_preferences` (email → channel: email, phone → channel: sms)
-- [x] **Template de env**: `.env.local.example` com `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+> ⛔ **Scope out**: Gap 1 (SPL tokens na claim) e Gap 3 (cancel SPL tokens) — decisão de usar apenas SOL nativo para simplificar e evitar complexidade de ATA/CPI com múltiplos tokens. Herança de SPL tokens será feature futura.
 
-### Deploy (Concluído)
-1. **✅ Step 0 — Code Changes**: Commit com API route segura + ajustes do keeper
-2. **✅ Step 1 — Supabase**: Schema aplicado, env vars configuradas
-3. **✅ Step 2 — Keeper no Railway**: Deployado e healthy
-4. **✅ Step 3 — Frontend no Vercel**: Deployado e acessível
-5. **✅ Step 4 — End-to-End Test**: Passou (landing, health, vaults, CORS)
-6. **✅ Step 5 — Domínio Customizado**: `herita.xyz` configurado
+### Sprint 2 — Supabase: Segurança e RLS
+- [x] **Migration `001_rls_security_fix.sql`**: Criada com RLS policies para todas as 7 tabelas
+  - `vaults`: SELECT all, INSERT/UPDATE/DELETE owner-only, service_role INSERT
+  - `heirs`: SELECT vault-owners, INSERT/UPDATE/DELETE owner-only
+  - `notification_preferences`: SELECT vault-owners, INSERT/UPDATE/DELETE owner-only
+  - `notification_logs`: SELECT owner-only
+  - `heartbeat_logs`: SELECT owner-only
+  - `claim_executions`: SELECT all
+  - `audit_logs`: SELECT service_role only
+- [x] **Views**: `public_vaults` e `public_vault_heirs` com `SECURITY INVOKER`
+- [x] **Functions**: `is_vault_owner()`, `get_vault_owner()`, `get_notification_owner()` com `search_path = pg_temp, public`
+- [x] **Migration aplicada** via Supabase CLI
 
-### Editar Herdeiro (Vault Detail)
-7. **✅ API routes**: `PUT/DELETE /api/heirs/[id]` com verificação de ownership
-8. **✅ API route**: `GET /api/vaults/[address]/heirs` para listar dados enriquecidos com notificações
-9. **✅ Modal de edição na página de detalhes do vault**
-   - Campos editáveis: name, wallet, allocation type/value, email, phone
-   - **Asset mint: desabilitado** (não pode ser alterado após criação)
-   - Botões de editar/deletar sempre visíveis (não hover-only, funciona em mobile)
-   - Notificações sincronizadas no Supabase ao editar (email/phone salvos em `notification_preferences`)
+### Sprint 3 — Keeper: Integração Final
+- [x] **Heartbeat Modalidade B**: `submitHeartbeat` atualizado para montar transação com `Ed25519Program` + `heartbeat`
+- [x] **`buildEd25519Instruction()`**: Helper que cria instruction nativa do Ed25519Program com formato binário correto (offsets, pubkey, signature, message)
+- [x] **Transação em 2 instructions**: (1) Ed25519Program (verifica assinatura off-chain, prova on-chain), (2) heartbeat (reseta timer, lê sysvar)
+- [x] **Testes**: 10/10 passando — API REST (7 testes) + heartbeat service (3 testes)
+- [x] **Type-check**: `npx tsc --noEmit` passa sem erros
+- [x] **Config**: `tsconfig.test.json` criado para Jest, `@types/jest` instalado
 
-### Fix: Claim Distribution (CRÍTICO)
-10. **✅ Bug encontrado**: Cálculo de porcentagem usava `remaining_sol` que diminuía a cada herdeiro
-    - Exemplo errado: H1 50% de 1.0 = 0.5, H2 50% de 0.5 = 0.25 (total: 0.75, resto para H1)
-11. **✅ Correção no Rust (WSL)**: Adicionada variável `percentage_base` fixa
-    - Agora: H1 50% de 0.99 = 0.495, H2 50% de 0.99 = 0.495 (distribuição correta)
-12. **✅ Basis points mantido**: Divisor `10_000` (padrão Solana/DeFi)
-    - Frontend converte: usuário digita 25 → envia 2500 para o programa
-    - Display: 2500 → mostra "25%"
-13. **✅ Keeper IDL atualizado**: Copiado do build WSL (`~/crypto-heranca-build/target/idl/`)
-14. **✅ Keeper `fetchAllVaults()`**: Corrigido de `.all()` quebrado para `getProgramAccounts` + `memcmp` filter
+### Sprint 4 — Frontend: Integrações e UX
+- [x] **`lib/explorer.ts`**: Utilitário para gerar URLs do Solana Explorer e Solscan (tx + address)
+- [x] **`useEnhancedToast.tsx`**: Hook de toast com link "View on Explorer" para cada transação
+- [x] **`useHeirVaults.ts`**: Hook para buscar vaults onde o usuário é herdeiro, calcular alocação, verificar claimable
+- [x] **`/heir` page**: Dashboard completo para herdeiros
+  - Stats cards (vaults como heir, valor potencial, prontos para claim)
+  - Lista de vaults com timer em tempo real (atualiza a cada segundo)
+  - Progress bar colorida (verde → âmbar → vermelho)
+  - Botão "Execute Claim" aparece apenas quando timer expirou
+  - Estados: Claimed, Cancelled, Waiting deposit, Active, Claimable
+- [x] **Vault Detail UX**: Toast melhorado com explorer links, link para explorer no header
+- [x] **Navbar**: Adicionado link "Heir Dashboard"
+- [x] **Create Vault UX**: Detecta quando recovery code é acionado (Devnet lenta) e mostra warning apropriado
+- [x] **Build**: `next build` passa com 15 routes incluindo `/heir`
 
-### Fix: Notification Preferences (CRÍTICO)
-15. **✅ Matching por wallet**: `GET /api/vaults/[address]/heirs` agora usa `n.heir_wallet_address === heir.wallet_address`
-    - Antes: `n.address === heir.wallet_address` (email vs pubkey = nunca dava match)
-16. **✅ PUT heir**: Deleta/insere notificações apenas do **herdeiro específico** (não de todos do vault)
-17. **✅ Schema atualizado**: `heir_wallet_address TEXT` em `notification_preferences` com unique constraint
+---
 
 ## Active Problem / Blocker
-Nenhum blocker. Distribuição testada e funcionando corretamente.
+Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
+
+---
 
 ## What's Pending / Next Steps
 
-### Próximas Features
+### Gap 5 — Ajustar rent-exempt e constantes de mainnet (MÉDIO)
+- Verificar `RENT_EXEMPT_BALANCE` e `MAX_HEIRS` para mainnet
+- Ajustar `GAS_RESERVE_MIN` se necessário
 
-#### 1. **Notifications (Fase 4)** — PRIORITÁRIO
-- Implementar despachante (Resend/SendGrid para email, Twilio para SMS)
-- Integrar com `notification_preferences` e `notification_logs`
-- Enviar alertas quando vault estiver próximo de expirar (7 dias, 1 dia, 1 hora)
-- Enviar notificação de claim executado para herdeiros
+### Gap 6 — Testes de segurança e edge cases (MÉDIO)
+- Testar claim com 0 heirs
+- Testar heartbeat com proof inválido
+- Testar deposit + cancel sequence
 
-#### 2. **Keeper Stability**
-- Adicionar retry com backoff exponencial em chamadas RPC
-- Alertar no log quando vault tem `available_sol < gas_reserve` (não vai distribuir nada)
-- Separar keeper fee do gas refund no log de claim_executions
+### Sprint 5 — Testes End-to-End e Stress
+- Teste completo: create → deposit → heartbeat → wait expiry → claim
+- Teste com múltiplos heirs
+- Stress test: múltiplos vaults, múltiplos heartbeats
 
-#### 3. **Frontend UX Improvements**
-- Adicionar preview de distribuição antes do claim ("H1 receberá X SOL, H2 receberá Y SOL")
-- Mostrar warning quando vault balance < gas_reserve ("Adicione mais SOL para cobrir a reserva de gas")
-- Adicionar paginação na lista de vaults
-- Filtros por status (active, expired, claimed)
+### Sprint 6 — Auditoria e Deploy Mainnet
+- Auditoria de segurança do contrato
+- Deploy para mainnet-beta
+- Atualizar frontend para mainnet
+- Documentação final
 
-#### 4. **Token Support (SPL Tokens)**
-- Implementar `deposit_token` e `claim_token` no frontend
-- Mostrar saldo de tokens no vault detail
-- Suportar múltiplos assets por vault
+### Features Futuras (Pós-MVP)
+1. **SPL Token Support**: `deposit_token`, `claim_token`, múltiplos assets
+2. **Notifications**: Resend/SendGrid email, Twilio SMS — alertas de expiração
+3. **Keeper Stability**: Retry com backoff, alerting quando `available_sol < gas_reserve`
+4. **Preview de distribuição**: Mostrar quanto cada heir receberá antes do claim
+5. **Multi-sig heartbeat**: Permitir múltiplos signers
+6. **Paginação/filtros**: Lista de vaults com paginação e filtros por status
 
-#### 5. **Multi-Sig / Recovery**
-- Permitir múltiplos signers para heartbeat
-- Implementar recovery de vault via proof
-
-#### 6. **Test Coverage**
-- Adicionar testes unitários para claim distribution math
-- Testes de integração keeper ↔ Supabase
-- Testes E2E para fluxo completo (create → deposit → heartbeat → claim)
+---
 
 ## Key Decisions & Rationale
-- **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas (prerender estático). O cliente só é instanciado no momento da chamada.
-- **Best-Effort Sync**: O sync para o Supabase não bloqueia o redirect. Se falhar, o vault já existe on-chain e o usuário pode continuar. O log de warning ajuda a debugar.
-- **Service Role via API Route**: O frontend nunca mais faz INSERT direto no Supabase. A API route `/api/sync-vault` valida a vault on-chain (owner, parâmetros, heirs) e usa `SUPABASE_SERVICE_ROLE_KEY` server-side. Isso elimina a necessidade de abrir RLS INSERT para anon key.
-- **On-Chain Validation na API Route**: Antes de persistir, a route confere `vault.owner`, `seed`, `inactivityPeriod`, `keeperFeeBps`, `gasReserveLamports` e `heirs.length` contra a conta on-chain. Isso previne sync de dados falsificados.
-- **Campo `name` em `heirs`**: Adicionado no schema para personalização de notificações ("Olá João, o vault de Maria expirou...").
-- **Basis Points (10000)**: Mantido como padrão no Rust para compatibilidade com convenções Solana/DeFi. Frontend converte % → bps ao enviar, e bps → % ao exibir.
-- **Percentage Base Fixa**: No claim, porcentagens são calculadas sobre `percentage_base` (saldo após fixed amounts), não sobre `remaining_sol` decrescente. Isso garante divisão proporcional correta entre herdeiros.
-- **Asset Mint Não Editável**: Herdeiros não podem ter o asset alterado após criação do vault (constraint de design — cada herdeiro é vinculado a um asset específico).
-- **Hover-Only Removido**: Botões de editar/deletar herdeiros agora sempre visíveis para suportar mobile/touch.
 
-## Files Modified / Created (Esta sessão)
+### Desta desta sessão (2026-04-30)
+- **No SPL tokens**: Escopo reduzido para SOL nativo apenas. SPL tokens serão feature futura para evitar complexidade de ATA/CPI cross-program.
+- **Ed25519 sysvar verification**: Usar `Sysvar1nstructions1111111111111111111111111` (instruction sysvar) para verificar assinatura on-chain sem custo extra de compute. O keeper monta uma transação com `Ed25519Program` instruction primeiro, depois `heartbeat` instruction que lê o sysvar.
+- **Recovery code no initializeVault**: Se a Devnet demora >30s e dá timeout, o retry falha com "already in use" mas o vault já foi criado. O recovery detecta isso e retorna sucesso, evitando frustração do usuário.
+- **Heir Dashboard separado**: Página dedicada `/heir` para herdeiros visualizarem seus vaults e executarem claim. Isso separa claramente as personas (owner vs heir).
+- **Type narrowing para enums Anchor**: Em vez de usar union types discriminatórias diretamente no frontend, extrair string status (`"active" | "cancelled" | "claimed"`) do objeto Anchor para evitar erros de TypeScript.
+
+### Decisões anteriores mantidas
+- **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas.
+- **Best-Effort Sync**: Sync para Supabase não bloqueia redirect. Se falhar, vault já existe on-chain.
+- **Service Role via API Route**: Frontend nunca faz INSERT direto no Supabase. API route `/api/sync-vault` valida on-chain e usa `SUPABASE_SERVICE_ROLE_KEY` server-side.
+- **Basis Points (10000)**: Padrão Solana/DeFi. Frontend converte % → bps ao enviar, bps → % ao exibir.
+- **Asset Mint Não Editável**: Herdeiros não podem ter asset alterado após criação.
+
+---
+
+## Files Modified / Created (Esta sessão — 2026-04-30)
 
 ### Rust Program (WSL)
-- `~/crypto-heranca-build/programs/crypto_heranca/src/lib.rs` — Fix: `percentage_base` para cálculo correto de porcentagens
-- `~/crypto-heranca-build/programs/crypto_heranca/src/instructions/initialize_vault.rs` — Validação `sum == 10_000`
-- `~/crypto-heranca-build/programs/crypto_heranca/src/instructions/update_config.rs` — Validação `sum == 10_000`
-- `~/crypto-heranca-build/programs/crypto_heranca/src/errors.rs` — Mensagem de erro atualizada
+- `~/crypto-heranca-build/programs/crypto_heranca/src/instructions/heartbeat.rs` — Verificação Ed25519 real com sysvar
+- `~/crypto-heranca-build/programs/crypto_heranca/src/lib.rs` — Fix: cancel vault sem SPL (apenas SOL)
 
 ### Keeper
-- `keeper/src/services/idl/crypto_heranca.json` — IDL atualizado com novo build
-- `keeper/src/services/solana.ts` — Fix: `fetchAllVaults()` usa `getProgramAccounts` + `memcmp`
-- `keeper/src/services/vault_monitor.ts` — Fix: `syncHeirs()` preserva `name`, error handling melhorado
-- `keeper/src/db/schema.sql` — Adicionado `heir_wallet_address` em `notification_preferences`
+- `keeper/src/services/heartbeat.ts` — `buildEd25519Instruction()` + `submitHeartbeat()` Modalidade B
+- `keeper/tests/heartbeat.test.ts` — Testes de validação de assinatura
+- `keeper/jest.config.js` — Configuração para `tsconfig.test.json`
+- `keeper/tsconfig.test.json` — Configuração de testes com types Jest
+- `keeper/package.json` — Adicionado `@types/jest`
 
-### Frontend API Routes
-- `frontend/src/app/api/heirs/[id]/route.ts` — Fix: PUT/DELETE notificações por `heir_wallet_address`
-- `frontend/src/app/api/vaults/[address]/heirs/route.ts` — Fix: matching por `heir_wallet_address`
+### Supabase
+- `keeper/src/db/migrations/001_rls_security_fix.sql` — RLS policies para todas as tabelas
 
-### Frontend Pages
-- `frontend/src/app/vaults/[address]/page.tsx` — Modal de edição, asset mint desabilitado, % display correto, botões sempre visíveis
-- `frontend/src/app/vaults/create/page.tsx` — Envia `allocationValue * 100` (converte % → bps)
+### Frontend
+- `frontend/src/lib/explorer.ts` — **NEW** URLs para Solana Explorer/Solscan
+- `frontend/src/hooks/useEnhancedToast.tsx` — **NEW** Toast com link para explorer
+- `frontend/src/hooks/useHeirVaults.ts` — **NEW** Hook para vaults de herdeiro
+- `frontend/src/app/heir/page.tsx` — **NEW** Dashboard para herdeiros
+- `frontend/src/app/vaults/[address]/page.tsx` — Toast enhanced, explorer link
+- `frontend/src/app/vaults/create/page.tsx` — Recovery detection, toast enhanced
+- `frontend/src/components/layout/Navbar.tsx` — Link "Heir Dashboard"
 
-### Deploy
-- `docs/DEPLOY-GUIDE.md` — Guia de deploy manual
-- **Program ID devnet**: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
+---
 
 ## Important Context
 - Repositório: https://github.com/6u5t4v05ouz4/heritadapp
 - Program ID devnet: `8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX`
 - Idioma UI: EN-US
 - Stack: Next.js 16 + React 19 + Tailwind CSS v4 + TypeScript + Anchor 0.32 + Supabase
+- Build WSL: `~/crypto-heranca-build/` (source of truth para Anchor builds)
+- Deploy target: Railway (keeper) + Vercel (frontend) + Supabase (DB)
 
 ## Deploy URLs
 - **Frontend (Vercel)**: https://frontend-jdx7pym9f-6u5t4v0s-projects.vercel.app
