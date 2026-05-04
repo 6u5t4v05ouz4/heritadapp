@@ -51,14 +51,9 @@ export default function Navbar() {
           )}
           <div className="hidden md:flex items-center gap-8 mr-4">
             <Link href="/docs" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
-              Protocol
+              Docs
             </Link>
-            <Link href="#" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
-              Governance
-            </Link>
-            <Link href="#" className="text-xs font-semibold tracking-widest text-gray-400 hover:text-[#D4AF37] uppercase transition-colors">
-              Security
-            </Link>
+
           </div>
           <a href="https://x.com/heritadapp" target="_blank" rel="noopener noreferrer" className="text-[#D4AF37] hover:opacity-80 transition-opacity hidden sm:block" aria-label="X (Twitter)">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
