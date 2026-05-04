@@ -298,6 +298,43 @@ export function useVault() {
     [program, publicKey]
   );
 
+  const updateConfig = useCallback(
+    async (
+      vaultPDA: PublicKey,
+      newHeirs?: HeirInput[],
+      newInactivityPeriodSeconds?: number,
+      newKeeperFeeBps?: number,
+      newGasReserveLamports?: number
+    ) => {
+      if (!program || !publicKey) throw new Error("Wallet not connected");
+
+      const tx = await retryRpc(() =>
+        (program as any).methods
+          .updateConfig(
+            newInactivityPeriodSeconds ? new BN(newInactivityPeriodSeconds) : null,
+            newHeirs
+              ? newHeirs.map((h) => ({
+                  wallet: new PublicKey(h.wallet),
+                  asset: new PublicKey(h.asset),
+                  allocationType: h.allocationType,
+                  allocationValue: new BN(h.allocationValue),
+                }))
+              : null,
+            newKeeperFeeBps ?? null,
+            newGasReserveLamports ? new BN(newGasReserveLamports) : null
+          )
+          .accounts({
+            owner: publicKey,
+            vault: vaultPDA,
+          })
+          .rpc({ skipPreflight: true, commitment: "confirmed" })
+      );
+
+      return tx;
+    },
+    [program, publicKey]
+  );
+
   const claim = useCallback(
     async (vaultPDA: PublicKey, heirs?: PublicKey[]) => {
       if (!program || !publicKey) throw new Error("Wallet not connected");
@@ -374,6 +411,7 @@ export function useVault() {
     depositToken,
     heartbeat,
     cancelVault,
+    updateConfig,
     claim,
     fetchVault,
     fetchVaultsByOwner,

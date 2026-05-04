@@ -26,7 +26,7 @@ export default function VaultDetailPage() {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
-  const { fetchVault, depositSol, heartbeat, cancelVault, claim } = useVault();
+  const { fetchVault, depositSol, heartbeat, cancelVault, claim, updateConfig } = useVault();
   const { success, error: showError, ToastContainer } = useEnhancedToast();
 
   const vaultAddress = params.address as string;
@@ -57,6 +57,7 @@ export default function VaultDetailPage() {
     allocationValue: "",
   });
   const [editLoading, setEditLoading] = useState(false);
+  const [deletingHeirId, setDeletingHeirId] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -113,6 +114,41 @@ export default function VaultDetailPage() {
     } finally {
       setHeirsLoading(false);
     }
+  };
+
+  // Helper: converte herdeiros do Supabase para formato on-chain
+  const buildHeirsForOnChain = (heirsList: any[]): { wallet: string; asset: string; allocationType: { percentage: {} } | { fixedAmount: {} }; allocationValue: number }[] => {
+    return heirsList.map((h) => ({
+      wallet: h.wallet_address,
+      asset: h.asset_mint || "11111111111111111111111111111111",
+      allocationType:
+        h.allocation_type === "percentage"
+          ? ({ percentage: {} } as { percentage: {} })
+          : ({ fixedAmount: {} } as { fixedAmount: {} }),
+      allocationValue: h.allocation_value,
+    }));
+  };
+
+  // Helper: recalcula percentuais para somar 10000 bps após remoção
+  const recalculatePercentages = (heirsList: any[]): any[] => {
+    const result = heirsList.map((h) => ({ ...h }));
+    const percentageHeirs = result.filter((h) => h.allocation_type === "percentage");
+    if (percentageHeirs.length > 0) {
+      const total = percentageHeirs.reduce((sum, h) => sum + h.allocation_value, 0);
+      if (total > 0 && total !== 10000) {
+        const factor = 10000 / total;
+        let newTotal = 0;
+        for (let i = 0; i < percentageHeirs.length; i++) {
+          const h = percentageHeirs[i];
+          const newValue = i === percentageHeirs.length - 1
+            ? 10000 - newTotal
+            : Math.floor(h.allocation_value * factor);
+          h.allocation_value = newValue;
+          newTotal += newValue;
+        }
+      }
+    }
+    return result;
   };
 
   const openEditModal = (heir: any) => {
@@ -176,6 +212,42 @@ export default function VaultDetailPage() {
 
     setEditLoading(true);
     try {
+      // Verifica se dados on-chain mudaram (wallet, allocationType, allocationValue)
+      const onChainChanged =
+        editForm.walletAddress.trim() !== editingHeir.wallet_address ||
+        editForm.allocationType !== (editingHeir.allocation_type === "percentage" ? "percentage" : "fixed") ||
+        Number(editForm.allocationValue) !== (editingHeir.allocation_type === "percentage" ? editingHeir.allocation_value / 100 : editingHeir.allocation_value);
+
+      if (onChainChanged) {
+        // Atualizar on-chain primeiro
+        const updatedSupabaseHeirs = supabaseHeirs.map((h) =>
+          h.id === editingHeir.id
+            ? {
+                ...h,
+                wallet_address: editForm.walletAddress.trim(),
+                allocation_type: editForm.allocationType === "percentage" ? "percentage" : "fixed_amount",
+                allocation_value:
+                  editForm.allocationType === "percentage"
+                    ? Number(editForm.allocationValue) * 100
+                    : Number(editForm.allocationValue),
+              }
+            : h
+        );
+
+        // Se porcentagem, validar soma
+        const pctSum = updatedSupabaseHeirs
+          .filter((h) => h.allocation_type === "percentage")
+          .reduce((sum, h) => sum + h.allocation_value, 0);
+        if (pctSum !== 10000) {
+          throw new Error(`Percentage allocations must sum to 100% (current: ${(pctSum / 100).toFixed(2)}%)`);
+        }
+
+        const onChainHeirs = buildHeirsForOnChain(updatedSupabaseHeirs);
+        await updateConfig(new PublicKey(vaultAddress), onChainHeirs);
+        success("On-chain configuration updated!");
+      }
+
+      // Atualizar no Supabase (sempre, mesmo que on-chain não mudou — nome/email/phone podem ter mudado)
       const res = await fetch(`/api/heirs/${editingHeir.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -202,6 +274,9 @@ export default function VaultDetailPage() {
       success("Heir updated successfully!");
       closeEditModal();
       await loadSupabaseHeirs();
+      // Refresh vault on-chain data
+      const updatedVault = await fetchVault(new PublicKey(vaultAddress));
+      if (updatedVault) setVault(updatedVault);
     } catch (err: any) {
       showError(err.message || "Error updating heir");
     } finally {
@@ -211,9 +286,36 @@ export default function VaultDetailPage() {
 
   const handleDeleteHeir = async (heir: any) => {
     if (!publicKey) return;
-    if (!confirm(`Are you sure you want to remove heir "${heir.name || heir.wallet_address}"?`)) return;
+    if (!confirm(`Are you sure you want to remove heir "${heir.name || heir.wallet_address}"? This will also update the on-chain configuration.`)) return;
 
+    setDeletingHeirId(heir.id);
     try {
+      // 1. Construir nova lista de herdeiros sem o removido
+      const remainingHeirs = supabaseHeirs.filter((h) => h.id !== heir.id);
+
+      // 2. Se restam herdeiros com percentage, recalcular para 100%
+      const heirsForOnChain = remainingHeirs.length > 0 ? recalculatePercentages(remainingHeirs) : [];
+
+      // 3. Validar soma de percentuais
+      const pctSum = heirsForOnChain
+        .filter((h) => h.allocation_type === "percentage")
+        .reduce((sum, h) => sum + h.allocation_value, 0);
+      if (heirsForOnChain.length > 0 && pctSum !== 10000) {
+        throw new Error(`Percentage allocations must sum to 100% (current: ${(pctSum / 100).toFixed(2)}%). Please adjust remaining heirs before removing.`);
+      }
+
+      // 4. Atualizar on-chain primeiro
+      if (heirsForOnChain.length > 0) {
+        const onChainHeirs = buildHeirsForOnChain(heirsForOnChain);
+        await updateConfig(new PublicKey(vaultAddress), onChainHeirs);
+        success("On-chain configuration updated!");
+      } else {
+        // Se não restam herdeiros, atualizar com lista vazia
+        await updateConfig(new PublicKey(vaultAddress), []);
+        success("On-chain heirs cleared!");
+      }
+
+      // 5. Deletar do Supabase
       const res = await fetch(
         `/api/heirs/${heir.id}?ownerAddress=${publicKey.toBase58()}`,
         { method: "DELETE" }
@@ -226,8 +328,13 @@ export default function VaultDetailPage() {
 
       success("Heir removed successfully!");
       await loadSupabaseHeirs();
+      // Refresh vault on-chain data
+      const updatedVault = await fetchVault(new PublicKey(vaultAddress));
+      if (updatedVault) setVault(updatedVault);
     } catch (err: any) {
       showError(err.message || "Error removing heir");
+    } finally {
+      setDeletingHeirId(null);
     }
   };
 
@@ -782,11 +889,16 @@ export default function VaultDetailPage() {
                     </button>
                     <button
                       onClick={() => handleDeleteHeir(heir)}
-                      className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      disabled={deletingHeirId === heir.id}
+                      className="p-1.5 rounded-lg text-text-tertiary hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Delete heir"
                       title="Remove heir"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {deletingHeirId === heir.id ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
                 </div>
