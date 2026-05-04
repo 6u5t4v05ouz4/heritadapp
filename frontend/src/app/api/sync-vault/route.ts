@@ -202,6 +202,7 @@ export async function POST(request: NextRequest) {
           recipient_type: "heir",
           channel: "email",
           address: h.email,
+          heir_wallet_address: h.wallet,
         });
       }
       if (h.phone) {
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
           recipient_type: "heir",
           channel: "sms",
           address: h.phone,
+          heir_wallet_address: h.wallet,
         });
       }
     }

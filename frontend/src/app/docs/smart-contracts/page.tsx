@@ -18,7 +18,7 @@ export default function SmartContractsPage() {
             <div>
               <h2 className="text-xl font-bold text-white mb-3">Architecture & Anchor</h2>
               <p className="text-gray-400 leading-relaxed">
-                The core of the protocol is the <code className="text-[#D4AF37] bg-[#D4AF37]/10 px-1.5 py-0.5 rounded">CryptoHeranca</code> program. It handles vault creation, deposits, pinging (resetting the timer), and the claiming logic securely on-chain.
+                The core of the protocol is the <code className="text-[#D4AF37] bg-[#D4AF37]/10 px-1.5 py-0.5 rounded">HERITA</code> program. It handles vault creation, deposits, pinging (resetting the timer), and the claiming logic securely on-chain.
               </p>
             </div>
           </div>

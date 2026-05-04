@@ -7,25 +7,8 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useVault } from "@/hooks/useVault";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Heart,
-  Ban,
-  Zap,
-  Coins,
-  Wallet,
-  Users,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  TrendingUp,
-  Settings,
-  Pencil,
-  Trash2,
-  X,
-  ExternalLink,
-} from "lucide-react";
+import { Trash2, ExternalLink, RefreshCw, Copy, Check, Clock, Wallet, AlertTriangle, ArrowLeft, Heart, TrendingUp, Ban, Settings, Coins, Shield, User, Users, Info, X, CheckCircle, Zap, Pencil } from "lucide-react";
+import Confetti from "react-confetti";
 import ClientOnly from "@/components/ClientOnly";
 import PageHeader from "@/components/layout/PageHeader";
 import Card from "@/components/ui/Card";
@@ -58,6 +41,8 @@ export default function VaultDetailPage() {
   // Supabase heirs data (enriched with name, email, phone)
   const [supabaseHeirs, setSupabaseHeirs] = useState<any[]>([]);
   const [heirsLoading, setHeirsLoading] = useState(false);
+  const [isVaultSynced, setIsVaultSynced] = useState<boolean | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Edit modal state
   const [editingHeir, setEditingHeir] = useState<any>(null);
@@ -112,13 +97,19 @@ export default function VaultDetailPage() {
       if (res.ok) {
         const data = await res.json();
         setSupabaseHeirs(data.heirs || []);
+        setIsVaultSynced(true);
+      } else if (res.status === 404) {
+        setSupabaseHeirs([]);
+        setIsVaultSynced(false);
       } else {
         console.error("[VaultDetail] Failed to load heirs:", res.status);
         setSupabaseHeirs([]);
+        setIsVaultSynced(false);
       }
     } catch (err) {
       console.error("[VaultDetail] Failed to load heirs:", err);
       setSupabaseHeirs([]);
+      setIsVaultSynced(false);
     } finally {
       setHeirsLoading(false);
     }
@@ -149,6 +140,40 @@ export default function VaultDetailPage() {
 
   const handleUpdateHeir = async () => {
     if (!editingHeir || !publicKey) return;
+
+    if (!editForm.name.trim() || !editForm.walletAddress.trim() || !editForm.allocationValue) {
+      showError("Please fill all required fields");
+      return;
+    }
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      showError("Invalid email address");
+      return;
+    }
+    if (editForm.walletAddress === publicKey.toBase58()) {
+      showError("You cannot use your own wallet as an heir");
+      return;
+    }
+    try {
+      new PublicKey(editForm.walletAddress.trim());
+    } catch (e) {
+      showError("Invalid Solana wallet address");
+      return;
+    }
+
+    const otherHeirs = supabaseHeirs.filter(h => h.id !== editingHeir.id);
+    if (otherHeirs.some(h => h.wallet_address === editForm.walletAddress.trim())) {
+      showError("Another heir already uses this wallet address");
+      return;
+    }
+    if (editForm.email && otherHeirs.some(h => h.email?.toLowerCase() === editForm.email.trim().toLowerCase())) {
+      showError("Another heir already uses this email");
+      return;
+    }
+    if (editForm.phone && otherHeirs.some(h => h.phone === editForm.phone.trim())) {
+      showError("Another heir already uses this phone number");
+      return;
+    }
+
     setEditLoading(true);
     try {
       const res = await fetch(`/api/heirs/${editingHeir.id}`, {
@@ -234,6 +259,8 @@ export default function VaultDetailPage() {
       success("Heartbeat sent!", "Inactivity timer reset", tx);
       const updated = await fetchVault(new PublicKey(vaultAddress));
       setVault(updated);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 8000);
     } catch (err: any) {
       const msg = err.message || "Heartbeat error";
       setError(msg);
@@ -396,8 +423,22 @@ export default function VaultDetailPage() {
       : "Active"
     : "Inactive";
 
+  const isCheckedInToday =
+    lastHeartbeat > 0 &&
+    new Date(lastHeartbeat * 1000).toDateString() === new Date(now).toDateString();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 relative overflow-hidden">
+      {showConfetti && (
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <Confetti
+            recycle={false}
+            numberOfPieces={400}
+            gravity={0.15}
+            onConfettiComplete={() => setShowConfetti(false)}
+          />
+        </div>
+      )}
       <ToastContainer />
 
       {/* Header */}
@@ -555,20 +596,36 @@ export default function VaultDetailPage() {
         <Card>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-lg bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center">
-              <Heart className="w-4 h-4 text-accent-primary" />
+              <Heart className={`w-4 h-4 text-accent-primary ${isCheckedInToday ? '' : 'animate-pulse'}`} />
             </div>
             <div>
               <h3 className="font-semibold text-text-primary">Heartbeat</h3>
               <p className="text-xs text-text-tertiary">Resets the inactivity timer</p>
             </div>
           </div>
+
+          <div className="mb-4">
+            {lastHeartbeat > 0 ? (
+              <p className="text-xs text-text-secondary flex items-center gap-1">
+                <Check className="w-3 h-3 text-emerald-400" />
+                Last check-in: <span className="font-medium text-text-primary">{new Date(lastHeartbeat * 1000).toLocaleString()}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-amber-400 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                No check-in recorded yet
+              </p>
+            )}
+          </div>
+
           <Button
             onClick={handleHeartbeat}
-            disabled={actionLoading === "heartbeat"}
+            disabled={actionLoading === "heartbeat" || isCheckedInToday}
             isLoading={actionLoading === "heartbeat"}
             className="w-full"
+            variant={isCheckedInToday ? "secondary" : "primary"}
           >
-            Send Heartbeat
+            {isCheckedInToday ? "Check-in realizado hoje" : "Send Heartbeat"}
           </Button>
         </Card>
 
@@ -627,7 +684,7 @@ export default function VaultDetailPage() {
                 <Users className="w-4 h-4 text-accent-warm" />
               </div>
               <h3 className="font-semibold text-text-primary">
-                Heirs ({supabaseHeirs.length || vault.heirs?.length || 0})
+                Heirs ({isVaultSynced ? supabaseHeirs.length : vault.heirs?.length || 0})
               </h3>
             </div>
             <div className="flex items-center gap-2">
@@ -645,7 +702,7 @@ export default function VaultDetailPage() {
           </div>
 
           {/* Warning: on-chain heirs not in Supabase */}
-          {vault.heirs?.length > 0 && supabaseHeirs.length === 0 && !heirsLoading && (
+          {vault.heirs?.length > 0 && isVaultSynced === false && !heirsLoading && (
             <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
               Heirs found on-chain but not synced with database. Edit/delete unavailable until synced.
             </div>
@@ -700,11 +757,18 @@ export default function VaultDetailPage() {
                             : `${heir.asset_mint.slice(0, 6)}...${heir.asset_mint.slice(-6)}`}
                         </span>
                       </span>
-                      <span className="text-text-primary font-medium font-mono text-sm">
-                        {heir.allocation_type === "percentage"
-                          ? `${(heir.allocation_value / 100).toFixed(0)}%`
-                          : heir.allocation_value}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-text-primary font-medium font-mono text-sm">
+                          {heir.allocation_type === "percentage"
+                            ? `${(heir.allocation_value / 100).toFixed(0)}%`
+                            : heir.allocation_value}
+                        </span>
+                        {heir.allocation_type === "percentage" && (
+                          <span className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                            Est: {((vaultBalance / LAMPORTS_PER_SOL) * (heir.allocation_value / 10000)).toFixed(5)} SOL
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -730,7 +794,7 @@ export default function VaultDetailPage() {
             ))}
 
             {/* On-chain heirs fallback (not editable) */}
-            {supabaseHeirs.length === 0 &&
+            {isVaultSynced === false &&
               vault.heirs?.map((heir: any, i: number) => (
                 <div
                   key={i}
@@ -751,11 +815,18 @@ export default function VaultDetailPage() {
                         {heir.asset?.toBase58?.() || heir.asset}
                       </span>
                     </span>
-                    <span className="text-text-primary font-medium font-mono">
-                      {heir.allocationType?.percentage !== undefined
-                        ? `${(Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 100).toFixed(0)}%`
-                        : heir.allocationValue?.toString?.() || heir.allocationValue}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-text-primary font-medium font-mono">
+                        {heir.allocationType?.percentage !== undefined
+                          ? `${(Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 100).toFixed(0)}%`
+                          : heir.allocationValue?.toString?.() || heir.allocationValue}
+                      </span>
+                      {heir.allocationType?.percentage !== undefined && (
+                        <span className="text-[10px] text-emerald-400 font-mono mt-0.5">
+                          Est: {((vaultBalance / LAMPORTS_PER_SOL) * (Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 10000)).toFixed(5)} SOL
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -786,9 +857,10 @@ export default function VaultDetailPage() {
                 </label>
                 <Input
                   value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, name: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+                    setEditForm((f) => ({ ...f, name: val }));
+                  }}
                   placeholder="Heir name"
                 />
               </div>
@@ -885,9 +957,10 @@ export default function VaultDetailPage() {
                 <Input
                   type="tel"
                   value={editForm.phone}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, phone: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^\d+\-()\s]/g, "");
+                    setEditForm((f) => ({ ...f, phone: val }));
+                  }}
                   placeholder="+1 234 567 890"
                 />
                 <p className="text-[10px] text-text-tertiary mt-1">
@@ -933,6 +1006,15 @@ export default function VaultDetailPage() {
               <p className="text-xs text-text-tertiary">Address: {vaultAddress.slice(0, 12)}...</p>
             </div>
           </div>
+          {lastHeartbeat > 0 && (
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 rounded-full bg-accent-warm mt-2 shrink-0" />
+              <div>
+                <p className="text-sm text-text-primary font-medium">Last check-in</p>
+                <p className="text-xs text-text-tertiary">Recorded on {new Date(lastHeartbeat * 1000).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
           {vaultBalance > 0 && (
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-accent-primary mt-2 shrink-0" />

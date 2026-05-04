@@ -50,3 +50,6 @@ next-env.d.ts
 # md files
 *.md
 !/SESSION_STATE.md
+
+# superpowered
+.docs

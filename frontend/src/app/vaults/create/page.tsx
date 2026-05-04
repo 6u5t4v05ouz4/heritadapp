@@ -78,6 +78,21 @@ export default function CreateVaultPage() {
     .filter((h) => h.allocationType === "percentage")
     .reduce((sum, h) => sum + (Number(h.allocationValue) || 0), 0);
 
+  const divideEqually = () => {
+    const split = Math.floor(100 / heirs.length);
+    let remainder = 100 % heirs.length;
+    
+    const updated = heirs.map((h) => {
+      let val = split;
+      if (remainder > 0) {
+        val += 1;
+        remainder -= 1;
+      }
+      return { ...h, allocationValue: val.toString() };
+    });
+    setHeirs(updated);
+  };
+
   const validateForm = (): string | null => {
     const minutes = Number(inactivityMinutes);
     if (minutes < 1 || minutes > 525600) {
@@ -101,6 +116,17 @@ export default function CreateVaultPage() {
     if (new Set(wallets).size !== wallets.length) {
       return "Heirs cannot have duplicate addresses";
     }
+    if (publicKey && wallets.includes(publicKey.toBase58())) {
+      return "You cannot use your own wallet as an heir";
+    }
+    const emails = heirs.map((h) => h.email.trim().toLowerCase());
+    if (new Set(emails).size !== emails.length) {
+      return "Heirs cannot have duplicate emails";
+    }
+    const phones = heirs.map((h) => h.phone.trim());
+    if (new Set(phones).size !== phones.length) {
+      return "Heirs cannot have duplicate phone numbers";
+    }
     for (let i = 0; i < heirs.length; i++) {
       const h = heirs[i];
       if (!h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.wallet.trim() || !h.allocationValue) {
@@ -108,6 +134,11 @@ export default function CreateVaultPage() {
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
         return `Heir #${i + 1} has an invalid email address`;
+      }
+      try {
+        new PublicKey(h.wallet.trim());
+      } catch (e) {
+        return `Heir #${i + 1} has an invalid Solana wallet address`;
       }
     }
     const percentageByAsset: Record<string, number> = {};
@@ -205,6 +236,21 @@ export default function CreateVaultPage() {
       showError("Validation error", "Heirs cannot have duplicate addresses");
       return;
     }
+    if (publicKey && wallets.includes(publicKey.toBase58())) {
+      showError("Validation error", "You cannot use your own wallet as an heir");
+      return;
+    }
+
+    const emails = heirs.map((h) => h.email.trim().toLowerCase());
+    if (new Set(emails).size !== emails.length) {
+      showError("Validation error", "Heirs cannot have duplicate emails");
+      return;
+    }
+    const phones = heirs.map((h) => h.phone.trim());
+    if (new Set(phones).size !== phones.length) {
+      showError("Validation error", "Heirs cannot have duplicate phone numbers");
+      return;
+    }
 
     for (let i = 0; i < heirs.length; i++) {
       const h = heirs[i];
@@ -214,6 +260,12 @@ export default function CreateVaultPage() {
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.email)) {
         showError("Validation error", `Heir #${i + 1} has an invalid email address`);
+        return;
+      }
+      try {
+        new PublicKey(h.wallet.trim());
+      } catch (e) {
+        showError("Validation error", `Heir #${i + 1} has an invalid Solana wallet address`);
         return;
       }
       if (Number(h.allocationValue) <= 0) {
@@ -397,7 +449,10 @@ export default function CreateVaultPage() {
                     label="Full Name"
                     placeholder="John Doe"
                     value={heir.name}
-                    onChange={(e) => updateHeir(index, "name", e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+                      updateHeir(index, "name", val);
+                    }}
                     icon={<User className="w-4 h-4" />}
                   />
                   <Input
@@ -413,7 +468,10 @@ export default function CreateVaultPage() {
                     type="tel"
                     placeholder="+1 555 123 4567"
                     value={heir.phone}
-                    onChange={(e) => updateHeir(index, "phone", e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^\d+\-()\s]/g, "");
+                      updateHeir(index, "phone", val);
+                    }}
                     icon={<Phone className="w-4 h-4" />}
                   />
                 </div>
@@ -443,7 +501,19 @@ export default function CreateVaultPage() {
                       max="100"
                       placeholder="100"
                       value={heir.allocationValue}
-                      onChange={(e) => updateHeir(index, "allocationValue", e.target.value)}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) {
+                          updateHeir(index, "allocationValue", "");
+                          return;
+                        }
+                        if (val < 0) val = 0;
+                        const currentOthers = percentageSum - (Number(heir.allocationValue) || 0);
+                        if (val + currentOthers > 100) {
+                          val = 100 - currentOthers;
+                        }
+                        updateHeir(index, "allocationValue", val.toString());
+                      }}
                     />
                     <div className="flex items-center gap-1 mt-2">
                       <button
@@ -488,6 +558,16 @@ export default function CreateVaultPage() {
             >
               <Plus className="w-4 h-4" />
               Add Heir
+            </button>
+          )}
+
+          {heirs.length > 1 && (
+            <button
+              onClick={divideEqually}
+              className="mt-2 w-full py-2 px-4 rounded-xl border border-border-subtle bg-bg-base text-text-secondary hover:text-text-primary hover:border-accent-primary hover:bg-accent-primary/5 transition-all text-sm font-medium inline-flex items-center justify-center gap-2"
+            >
+              <Percent className="w-4 h-4" />
+              Divide Percentages Equally
             </button>
           )}
 
