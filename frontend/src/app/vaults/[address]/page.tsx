@@ -623,6 +623,35 @@ export default function VaultDetailPage() {
         <ProgressBar value={progress} variant={timerVariant} />
       </Card>
 
+      {/* Critical Alert — Timer < 25% */}
+      {timerVariant === "danger" && !isExpired && (
+        <div className="mb-6 p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-rose-300 mb-1">
+                Vault is expiring soon
+              </h4>
+              <p className="text-xs text-rose-200/70 leading-relaxed">
+                Your inactivity timer is below 25%. Send a heartbeat now to reset the timer and prevent your heirs from claiming the assets.
+              </p>
+              <Button
+                size="sm"
+                className="mt-3 bg-rose-500 hover:bg-rose-400 text-white border-0"
+                onClick={handleHeartbeat}
+                isLoading={actionLoading === "heartbeat"}
+                disabled={actionLoading === "heartbeat"}
+              >
+                <Zap className="w-3.5 h-3.5 mr-1.5" />
+                Send Heartbeat Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card>
