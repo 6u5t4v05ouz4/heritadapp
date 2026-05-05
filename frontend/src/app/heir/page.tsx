@@ -104,12 +104,14 @@ export default function HeirPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader
-          title="Heir Dashboard"
-          description="View and claim inheritance vaults where you are listed as an heir"
-        />
-        <Card className="mt-8">
+      <div className="relative">
+        <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-12">
+          <PageHeader
+            title="Heir Dashboard"
+            description="View and claim inheritance vaults where you are listed as an heir"
+          />
+          <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
               <Wallet className="w-8 h-8 text-text-tertiary" />
@@ -125,12 +127,15 @@ export default function HeirPage() {
             </ClientOnly>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div className="relative">
+      <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
       <ToastContainer />
       <PageHeader
         title="Heir Dashboard"
@@ -360,6 +365,7 @@ export default function HeirPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

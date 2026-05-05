@@ -20,10 +20,10 @@
   --color-text-secondary: #94A3B8;
   --color-text-tertiary: #64748B;
 
-  /* Accents */
-  --color-accent-primary: #38BDF8;
-  --color-accent-glow: rgba(56, 189, 248, 0.15);
-  --color-accent-warm: #FBBF24;
+  /* Accents — Gold theme aligned with brand */
+  --color-accent-primary: #D4AF37;
+  --color-accent-glow: rgba(212, 175, 55, 0.15);
+  --color-accent-warm: #C89B3C;
 
   /* Semantic */
   --color-success: #34D399;
@@ -61,7 +61,7 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(56, 189, 248, 0.2);
+  background: rgba(212, 175, 55, 0.2);
   color: #F8FAFC;
 }
 

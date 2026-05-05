@@ -82,13 +82,15 @@ export default function VaultsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
-      <PageHeader
-        title="My Vaults"
-        description="Manage your inheritance vaults"
-        actionLabel="+ New Vault"
-        actionHref="/vaults/create"
-      />
+    <div className="relative">
+      <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
+        <PageHeader
+          title="My Vaults"
+          description="Manage your inheritance vaults"
+          actionLabel="+ New Vault"
+          actionHref="/vaults/create"
+        />
 
       {!connected && (
         <Card className="mt-8">
@@ -187,6 +189,7 @@ export default function VaultsPage() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

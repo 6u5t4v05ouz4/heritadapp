@@ -433,9 +433,11 @@ export default function VaultDetailPage() {
 
   if (!connected) {
     return (
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader title="Vault Details" />
-        <Card className="mt-8">
+      <div className="relative">
+        <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-12">
+          <PageHeader title="Vault Details" />
+          <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-bg-elevated border border-border-subtle flex items-center justify-center mb-5">
               <Wallet className="w-8 h-8 text-text-tertiary" />
@@ -449,13 +451,16 @@ export default function VaultDetailPage() {
             </ClientOnly>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      <div className="relative">
+        <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="flex items-center gap-3 mb-8">
           <Skeleton className="w-9 h-9 rounded-lg" />
           <div className="space-y-2">
@@ -472,14 +477,17 @@ export default function VaultDetailPage() {
           <Card><Skeleton className="h-24 w-full" /></Card>
           <Card><Skeleton className="h-24 w-full" /></Card>
         </div>
+        </div>
       </div>
     );
   }
 
   if (!vault) {
     return (
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-        <PageHeader title="Vault not found" backHref="/vaults" />
+      <div className="relative">
+        <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-12">
+          <PageHeader title="Vault not found" backHref="/vaults" />
         <Card className="mt-8">
           <div className="flex flex-col items-center justify-center text-center p-8 md:p-12">
             <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-5">
@@ -494,6 +502,7 @@ export default function VaultDetailPage() {
             </Link>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
@@ -535,8 +544,10 @@ export default function VaultDetailPage() {
     new Date(lastHeartbeat * 1000).toDateString() === new Date(now).toDateString();
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 relative overflow-hidden">
-      {showConfetti && (
+    <div className="relative">
+      <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
+      <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 overflow-hidden">
+        {showConfetti && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           <Confetti
             recycle={false}
@@ -1138,6 +1149,7 @@ export default function VaultDetailPage() {
           )}
         </div>
       </Card>
+      </div>
     </div>
   );
 }
