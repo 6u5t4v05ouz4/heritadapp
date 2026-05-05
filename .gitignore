@@ -56,5 +56,8 @@ venv/
 *.md
 !/SESSION_STATE.md
 
+# docs folder (sensitive deploy guides)
+docs/
+
 # superpowered
 .docs
