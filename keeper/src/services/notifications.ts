@@ -486,6 +486,32 @@ async function logNotification(
 }
 
 // ============================================================
+// Helper: Check if a notification was already sent recently
+// ============================================================
+
+async function wasNotificationSentRecently(
+  vaultId: string,
+  template: NotificationTemplate,
+  hoursAgo: number = 24
+): Promise<boolean> {
+  const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('notification_logs')
+    .select('id')
+    .eq('vault_id', vaultId)
+    .eq('template_name', template)
+    .gte('sent_at', cutoff)
+    .limit(1);
+
+  if (error) {
+    console.error('[Notifications] Error checking notification logs:', error);
+    return false;
+  }
+
+  return data && data.length > 0;
+}
+
+// ============================================================
 // Helper: Check if vault needs expiry notification
 // ============================================================
 
@@ -502,20 +528,51 @@ export async function checkAndSendExpiryNotifications(
   const thresholdPercent = config.EXPIRY_WARNING_THRESHOLD_PERCENT;
   const thresholdSeconds = inactivityPeriod * (thresholdPercent / 100);
 
+  // 1. Expiry warning (owner)
   if (remaining <= thresholdSeconds && remaining > 0) {
-    const days = Math.floor(remaining / 86400);
-    const hours = Math.floor((remaining % 86400) / 3600);
-    const timeRemaining = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+    const alreadySent = await wasNotificationSentRecently(vaultId, 'expiry_warning', 24);
+    if (!alreadySent) {
+      const days = Math.floor(remaining / 86400);
+      const hours = Math.floor((remaining % 86400) / 3600);
+      const timeRemaining = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
 
-    await sendNotification({
-      vaultId,
-      template: 'expiry_warning',
-      recipientType: 'owner',
-      data: {
-        vaultAddress,
-        timeRemaining,
-      },
-    });
+      await sendNotification({
+        vaultId,
+        template: 'expiry_warning',
+        recipientType: 'owner',
+        data: {
+          vaultAddress,
+          timeRemaining,
+        },
+      });
+    }
+  }
+
+  // 2. Vault expired (heirs)
+  if (remaining <= 0) {
+    const alreadySent = await wasNotificationSentRecently(vaultId, 'vault_expired', 24);
+    if (!alreadySent) {
+      // Fetch heirs to notify each one
+      const { data: heirs } = await supabase
+        .from('heirs')
+        .select('wallet_address, name')
+        .eq('vault_id', vaultId);
+
+      if (heirs && heirs.length > 0) {
+        for (const heir of heirs) {
+          await sendNotification({
+            vaultId,
+            template: 'vault_expired',
+            recipientType: 'heir',
+            heirWalletAddress: heir.wallet_address,
+            data: {
+              vaultAddress,
+              heirName: heir.name || undefined,
+            },
+          });
+        }
+      }
+    }
   }
 }
 

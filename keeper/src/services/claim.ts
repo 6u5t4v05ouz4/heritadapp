@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 import { program, keeperKeypair, getVaultStatus, VaultAccount } from './solana';
 import { getSupabaseClient } from '../db/supabase';
+import { sendNotification } from './notifications';
 
 const supabase = getSupabaseClient();
 
@@ -69,6 +70,24 @@ export async function executeClaim(
           executed_at: new Date().toISOString(),
         }),
       ]);
+    }
+
+    // Send claim executed notification
+    try {
+      if (vaultData) {
+        await sendNotification({
+          vaultId: vaultData.id,
+          template: 'claim_executed',
+          recipientType: 'owner',
+          data: {
+            vaultAddress: vaultAddress.toBase58(),
+            ownerAddress: account.owner.toBase58(),
+            explorerUrl: `https://explorer.solana.com/tx/${tx}?cluster=devnet`,
+          },
+        });
+      }
+    } catch (notifyErr) {
+      console.error(`[Claim] Error sending notification for vault ${vaultAddress.toBase58()}:`, notifyErr);
     }
 
     console.log(`[Claim] Executed for vault ${vaultAddress.toBase58()}: ${tx}`);

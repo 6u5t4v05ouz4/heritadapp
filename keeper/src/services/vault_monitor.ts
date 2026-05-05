@@ -59,6 +59,21 @@ export async function upsertVault(
   const ownerAddress = account.owner.toBase58();
   const status = getVaultStatus(account);
   const solBalance = await getVaultSolBalance(pubkey);
+  const lastHeartbeatTs = account.lastHeartbeat.toNumber();
+  const inactivityPeriod = account.inactivityPeriod.toNumber();
+
+  // Fetch existing vault to detect changes
+  const { data: existingVault } = await supabase
+    .from('vaults')
+    .select('id, last_heartbeat, sol_balance')
+    .eq('vault_address', vaultAddress)
+    .single();
+
+  const existingHeartbeat = existingVault
+    ? Math.floor(new Date(existingVault.last_heartbeat).getTime() / 1000)
+    : 0;
+  const existingBalance = existingVault ? (existingVault.sol_balance || 0) : 0;
+  const vaultId = existingVault?.id;
 
   // Upsert vault
   const { data: vaultData, error: vaultError } = await supabase
@@ -68,8 +83,8 @@ export async function upsertVault(
         vault_address: vaultAddress,
         owner_address: ownerAddress,
         seed: account.seed.toString(),
-        inactivity_period: account.inactivityPeriod.toNumber(),
-        last_heartbeat: new Date(account.lastHeartbeat.toNumber() * 1000).toISOString(),
+        inactivity_period: inactivityPeriod,
+        last_heartbeat: new Date(lastHeartbeatTs * 1000).toISOString(),
         keeper_fee_bps: account.keeperFeeBps,
         gas_reserve_lamports: account.gasReserveLamports.toNumber(),
         status,
@@ -90,13 +105,55 @@ export async function upsertVault(
   // Sync assets
   await syncAssets(vaultData.id, pubkey, account.assets);
 
+  // Send change notifications (only for existing vaults, not new ones)
+  if (vaultId) {
+    // Heartbeat detected
+    if (lastHeartbeatTs > existingHeartbeat) {
+      try {
+        await sendNotification({
+          vaultId,
+          template: 'heartbeat_received',
+          recipientType: 'owner',
+          data: {
+            vaultAddress,
+            ownerAddress,
+            explorerUrl: `https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`,
+          },
+        });
+      } catch (err) {
+        console.error(`[Monitor] Error sending heartbeat notification for vault ${vaultAddress}:`, err);
+      }
+    }
+
+    // Deposit detected (balance increased by more than 0.001 SOL to avoid noise)
+    const depositThreshold = 0.001 * 1e9; // 0.001 SOL in lamports
+    if (solBalance > existingBalance + depositThreshold) {
+      const depositAmount = ((solBalance - existingBalance) / 1e9).toFixed(4);
+      try {
+        await sendNotification({
+          vaultId,
+          template: 'deposit_received',
+          recipientType: 'owner',
+          data: {
+            vaultAddress,
+            ownerAddress,
+            amount: `${depositAmount} SOL`,
+            explorerUrl: `https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`,
+          },
+        });
+      } catch (err) {
+        console.error(`[Monitor] Error sending deposit notification for vault ${vaultAddress}:`, err);
+      }
+    }
+  }
+
   // Check and send expiry notifications
   try {
     await checkAndSendExpiryNotifications(
       vaultData.id,
       vaultAddress,
-      account.lastHeartbeat.toNumber(),
-      account.inactivityPeriod.toNumber(),
+      lastHeartbeatTs,
+      inactivityPeriod,
       solBalance
     );
   } catch (err) {
