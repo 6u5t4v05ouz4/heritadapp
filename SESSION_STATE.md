@@ -1,133 +1,107 @@
 # Session State
 
-> Last updated: 2026-05-04
+> Last updated: 2026-05-05
 > Session started: 2026-04-26 (UI Redesign + Supabase Integration)
 > Session continued: 2026-04-30 (Contract Finalization + Security Hardening)
 > Session continued: 2026-05-04 (On-Chain Sync + Critical Bug Fix)
+> Session continued: 2026-05-05 (Gold Theme Unification + Notification System)
 
 ## Current Task
-**Sincronização On-Chain para Edição/Deleção de Herdeiros**
+**Sistema de Notificações (Email + SMS) e Tema Gold Premium**
 
-Corrigir o gap crítico onde alterações de herdeiros no frontend (Supabase) não eram refletidas on-chain, resultando em distribuição incorreta no claim.
+Implementar notificações via SendGrid (email) e Twilio (SMS) para alertar owners e heirs sobre eventos críticos do vault. Unificar tema visual gold premium dark em todas as telas.
 
 ---
 
 ## What Was Done
 
 ### Sprint 1 — Contrato: Gaps e Correções
-- [x] **Gap 2 (Verify)**: `initialize_token_account` já registra mint em `vault.assets` — verificado que o código já faz isso corretamente
+- [x] **Gap 2 (Verify)**: `initialize_token_account` já registra mint em `vault.assets`
 - [x] **Gap 4 (Fix)**: Verificação Ed25519 real implementada em `heartbeat.rs`
-  - Antes: placeholder `return Ok(())` (não verificava nada!)
-  - Agora: lê sysvar de instructions, valida que instruction anterior foi `Ed25519Program`, extrai pubkey/signature, verifica match
-  - Modalidade A (frontend): proof passado como parâmetro — verifica bytes brutos
-  - Modalidade B (keeper): proof é `null` — usa `verify_ed25519_instruction` com sysvar
-- [x] **Build WSL**: `cargo build-sbf` passa — `target/deploy/crypto_heranca.so` gerado
-
-> ⛔ **Scope out**: Gap 1 (SPL tokens na claim) e Gap 3 (cancel SPL tokens) — decisão de usar apenas SOL nativo para simplificar e evitar complexidade de ATA/CPI com múltiplos tokens. Herança de SPL tokens será feature futura.
+- [x] **Build WSL**: `cargo build-sbf` passa
 
 ### Sprint 2 — Supabase: Segurança e RLS
-- [x] **Migration `001_rls_security_fix.sql`**: Criada com RLS policies para todas as 7 tabelas
-  - `vaults`: SELECT all, INSERT/UPDATE/DELETE owner-only, service_role INSERT
-  - `heirs`: SELECT vault-owners, INSERT/UPDATE/DELETE owner-only
-  - `notification_preferences`: SELECT vault-owners, INSERT/UPDATE/DELETE owner-only
-  - `notification_logs`: SELECT owner-only
-  - `heartbeat_logs`: SELECT owner-only
-  - `claim_executions`: SELECT all
-  - `audit_logs`: SELECT service_role only
-- [x] **Views**: `public_vaults` e `public_vault_heirs` com `SECURITY INVOKER`
-- [x] **Functions**: `is_vault_owner()`, `get_vault_owner()`, `get_notification_owner()` com `search_path = pg_temp, public`
-- [x] **Migration aplicada** via Supabase CLI
+- [x] **Migration `001_rls_security_fix.sql`**: RLS policies para todas as 7 tabelas
+- [x] **Views**: `public_vaults` e `public_vault_heirs`
+- [x] **Functions**: `is_vault_owner()`, `get_vault_owner()`, `get_notification_owner()`
 
 ### Sprint 3 — Keeper: Integração Final
-- [x] **Heartbeat Modalidade B**: `submitHeartbeat` atualizado para montar transação com `Ed25519Program` + `heartbeat`
-- [x] **`buildEd25519Instruction()`**: Helper que cria instruction nativa do Ed25519Program com formato binário correto (offsets, pubkey, signature, message)
-- [x] **Transação em 2 instructions**: (1) Ed25519Program (verifica assinatura off-chain, prova on-chain), (2) heartbeat (reseta timer, lê sysvar)
-- [x] **Testes**: 10/10 passando — API REST (7 testes) + heartbeat service (3 testes)
-- [x] **Type-check**: `npx tsc --noEmit` passa sem erros
-- [x] **Config**: `tsconfig.test.json` criado para Jest, `@types/jest` instalado
+- [x] **Heartbeat Modalidade B**: `submitHeartbeat` com Ed25519Program + heartbeat
+- [x] **`buildEd25519Instruction()`**: Helper para instruction nativa
+- [x] **Testes**: 10/10 passando
 
 ### Sprint 4 — Frontend: Integrações e UX
-- [x] **`lib/explorer.ts`**: Utilitário para gerar URLs do Solana Explorer e Solscan (tx + address)
-- [x] **`useEnhancedToast.tsx`**: Hook de toast com link "View on Explorer" para cada transação
-- [x] **`useHeirVaults.ts`**: Hook para buscar vaults onde o usuário é herdeiro, calcular alocação, verificar claimable
+- [x] **`lib/explorer.ts`**: URLs Solana Explorer/Solscan
+- [x] **`useEnhancedToast.tsx`**: Toast com link "View on Explorer"
 - [x] **`/heir` page**: Dashboard completo para herdeiros
-  - Stats cards (vaults como heir, valor potencial, prontos para claim)
-  - Lista de vaults com timer em tempo real (atualiza a cada segundo)
-  - Progress bar colorida (verde → âmbar → vermelho)
-  - Botão "Execute Claim" aparece apenas quando timer expirou
-  - Estados: Claimed, Cancelled, Waiting deposit, Active, Claimable
-- [x] **Vault Detail UX**: Toast melhorado com explorer links, link para explorer no header
-- [x] **Navbar**: Adicionado link "Heir Dashboard"
-- [x] **Create Vault UX**: Detecta quando recovery code é acionado (Devnet lenta) e mostra warning apropriado
-- [x] **Build**: `next build` passa com 15 routes incluindo `/heir`
+- [x] **Vault Detail UX**: Explorer links, toast melhorado
+- [x] **Build**: `next build` passa
 
 ### Sprint 5 — Sincronização On-Chain (CRÍTICO)
-- [x] **Bug identificado**: Edição/deleção de herdeiros no frontend apenas alterava o Supabase, deixando o smart contract on-chain desatualizado. Resultado: claim distribuía para herdeiros antigos/excluídos.
-- [x] **`useVault.ts` — `updateConfig()`**: Nova função no hook que chama a instrução `update_config` do programa Anchor on-chain
-  - Aceita: `newHeirs`, `newInactivityPeriodSeconds`, `newKeeperFeeBps`, `newGasReserveLamports`
-  - Converte herdeiros para formato `HeirInput` (wallet → PublicKey, allocationType enum, allocationValue BN)
-- [x] **`vaults/[address]/page.tsx` — `buildHeirsForOnChain()`**: Helper que converte herdeiros do Supabase para formato on-chain
-- [x] **`vaults/[address]/page.tsx` — `recalculatePercentages()`**: Helper que recalcula automaticamente percentuais para somarem 10.000 bps (100%) após remoção de um herdeiro
-- [x] **`handleDeleteHeir` atualizado**:
-  1. Pergunta confirmação informando que atualizará on-chain
-  2. Recalcula percentuais dos herdeiros restantes
-  3. Valida se soma dá 100%
-  4. Chama `updateConfig` on-chain para remover o herdeiro
-  5. Depois deleta do Supabase
-  6. Refresh do vault para refletir estado atualizado
-- [x] **`handleUpdateHeir` atualizado**:
-  1. Detecta se mudaram dados on-chain (wallet, allocationType, allocationValue)
-  2. Se mudou: chama `updateConfig` on-chain PRIMEIRO
-  3. Valida soma de percentuais = 100%
-  4. Depois atualiza no Supabase (nome, email, phone sempre atualizam)
-  5. Refresh do vault
-- [x] **Loading state no botão de deletar**: Spinner animado (`RefreshCw`) enquanto processa transação on-chain, evita cliques duplos
-- [x] **Build**: `next build` passa — 17 routes
+- [x] **Bug fix**: Edição/deleção de herdeiros agora atualiza on-chain primeiro
+- [x] **`useVault.ts` — `updateConfig()`**: Chama `update_config` on-chain
+- [x] **`buildHeirsForOnChain()`**: Conversão Supabase → on-chain
+- [x] **`recalculatePercentages()`**: Recálculo automático após remoção
+- [x] **`handleDeleteHeir`/`handleUpdateHeir`**: On-chain sync integrado
+
+### Sprint 6 — Tema Gold Premium Dark
+- [x] **Button.tsx**: Glow primary azul → dourado `rgba(212,175,55,0.3)`
+- [x] **Navbar.tsx**: Glass effect `backdrop-blur-md`, tokens semânticos, hover gold
+- [x] **page.tsx (home)**: `bg-bg-base`, CTA gold, footer com tokens
+- [x] **Todas as páginas**: Gradiente radial dourado no topo (`/vaults`, `/vaults/create`, `/vaults/[address]`, `/heir`)
+- [x] **Build**: 17 routes geradas com sucesso
+
+### Sprint 7 — Sistema de Notificações (Email + SMS)
+- [x] **Dependências**: `@sendgrid/mail` e `twilio` instalados no keeper
+- [x] **`notifications.ts`**: Serviço completo com 6 templates (heartbeat, deposit, expiry, claim, heir-alert, cancel)
+- [x] **Configuração**: Variáveis de ambiente para SendGrid, Twilio, thresholds
+- [x] **API Routes**: GET/DELETE `/notifications/preferences`, POST `/notifications/test`, GET `/notifications/status`
+- [x] **Integração Keeper**: `checkAndSendExpiryNotifications` em `vault_monitor.ts`
+- [x] **Event Wiring**:
+  - Heartbeat detectado → `heartbeat_received` para owner
+  - Depósito > 0.001 SOL → `deposit_received` para owner
+  - Claim executado → `claim_executed` para owner
+  - Vault expirado → `vault_expired` para heirs
+- [x] **Deduplication**: `wasNotificationSentRecently` via `notification_logs` (24h cooldown)
+- [x] **Frontend**: `NotificationPreferences.tsx` component na página de detalhes do vault
+- [x] **Banner crítico**: Alerta visual na vault detail page quando timer < 25% com CTA "Send Heartbeat Now"
+- [x] **Build**: Frontend e keeper passam (`npx tsc --noEmit` + `next build`)
 
 ---
 
 ## Active Problem / Blocker
-Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
+Nenhum blocker técnico. Build passando em todos os componentes.
+
+**Bloqueio para teste real**: Credenciais SendGrid/Twilio ainda não configuradas no `.env` do keeper. Usuário possui contas mas precisa inserir API keys para testar envio real.
 
 ---
 
 ## What's Pending / Next Steps
 
-### Sprint 6 — Testes End-to-End e Validação (ALTO)
+### Sprint 8 — Testes End-to-End e Validação (ALTO) 🔄 PRÓXIMO PASSO
+- [ ] **Teste de notificações reais**: Configurar credenciais SendGrid/Twilio no keeper e testar envio de email/SMS
+- [ ] **Teste E2E completo**: create → deposit → heartbeat → edit heir → delete heir → wait expiry → claim
 - [ ] **Teste de deleção**: Criar vault com 2 heirs (75%/25%), deletar um, verificar claim distribui 100% para o restante
-- [ ] **Teste de edição de wallet**: Criar vault com 1 heir, editar wallet, verificar claim manda para nova wallet
-- [ ] **Teste de edição de percentual**: Criar vault com 2 heirs (50%/50%), editar para (30%/70%), verificar claim respeita nova distribuição
-- [ ] **Teste completo E2E**: create → deposit → heartbeat → edit heir → delete heir → wait expiry → claim
+- [ ] **Teste de edição de wallet**: Editar wallet de heir, verificar claim manda para nova wallet
 - [ ] **Teste de validação**: Tentar deletar herdeiro quando restante não soma 100% — deve bloquear
 
-### Sprint 7 — Testes de Segurança e Edge Cases (MÉDIO)
-- [ ] Testar claim com 0 heirs (vault vazio após delete all)
+### Sprint 9 — Testes de Segurança e Edge Cases (MÉDIO)
+- [ ] Testar claim com 0 heirs
 - [ ] Testar heartbeat com proof inválido
 - [ ] Testar deposit + cancel sequence
 - [ ] Testar update_config por non-owner (deve falhar)
 - [ ] Stress test: múltiplos vaults, múltiplos heartbeats
 
-### Sprint 8 — Notificações (ALTO) 🔄 PRÓXIMO PASSO
-- [ ] **Configurar serviço de email (Resend/SendGrid)**: Criar conta, obter API key, configurar templates de email
-- [ ] **Configurar serviço de SMS (Twilio)**: Criar conta, obter credentials, configurar templates SMS
-- [ ] **Backend de notificações**: Criar tabela `notifications` e lógica de disparo no keeper/API route
-- [ ] **Notificação de expiração iminente**: Alertar owner quando timer estiver < 25% do período de inatividade
-- [ ] **Notificação de heartbeat recebido**: Confirmar para owner que heartbeat foi registrado com sucesso
-- [ ] **Notificação de depósito**: Alertar owner quando fundos são depositados no vault
-- [ ] **Notificação para herdeiros**: Alertar herdeiros quando vault expirar e claim estiver disponível
-- [ ] **Frontend — Preferências de notificação**: Tela para owner configurar quais notificações deseja receber e por qual canal (email/SMS)
-- [ ] **Frontend — Notificação de expiração**: Toast/banner no dashboard do owner quando timer estiver crítico
-
-### Sprint 9 — Keeper Stability & UX (MÉDIO)
-- [ ] **Retry com backoff**: Implementar retry automático no keeper para transações que falham por congestionamento
+### Sprint 10 — Keeper Stability & UX (MÉDIO)
+- [ ] **Retry com backoff**: Retry automático para transações que falham por congestionamento
 - [ ] **Alerting quando `available_sol < gas_reserve`**: Notificar owner se saldo do vault estiver abaixo do gas reserve
 - [ ] **Paginação/filtros**: Lista de vaults com paginação e filtros por status
 - [ ] **Preview de distribuição**: Mostrar quanto cada heir receberá antes do claim
 
-### Sprint 10 — Sincronização Automática e Multi-sig (MÉDIO)
-- [ ] **Sincronização automática**: Detectar quando Supabase está out of sync com on-chain e sugerir sync
+### Sprint 11 — Sincronização Automática e Multi-sig (MÉDIO)
+- [ ] **Sincronização automática**: Detectar quando Supabase está out of sync com on-chain
 - [ ] **Multi-sig heartbeat**: Permitir múltiplos signers para heartbeat
-- [ ] **SPL Token Support**: `deposit_token`, `claim_token`, múltiplos assets (feature avançada)
+- [ ] **SPL Token Support**: `deposit_token`, `claim_token` (feature avançada)
 
 ---
 
@@ -135,12 +109,12 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 
 > ⚠️ **Tudo relacionado a Mainnet será implementado APENAS no final do projeto**, após todas as features, testes e validações estarem 100% concluídas.
 
-### Sprint 11 — Gaps Finais de Mainnet (MÉDIO)
+### Sprint 12 — Gaps Finais de Mainnet (MÉDIO)
 - [ ] Ajustar `MIN_INACTIVITY_PERIOD` de 60s (teste) para 30 dias antes do mainnet
 - [ ] Verificar `RENT_EXEMPT_BALANCE` e `MAX_HEIRS` para mainnet
 - [ ] Ajustar `GAS_RESERVE_MIN` se necessário
 
-### Sprint 12 — Auditoria e Deploy Mainnet
+### Sprint 13 — Auditoria e Deploy Mainnet
 - [ ] Auditoria de segurança do contrato (Trail of Bits / OtterSec)
 - [ ] Deploy para mainnet-beta
 - [ ] Atualizar frontend para mainnet (RPC, Program ID, explorer URLs)
@@ -150,35 +124,40 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 
 ## Key Decisions & Rationale
 
-### Desta sessão (2026-05-04)
-- **On-chain é a fonte da verdade**: O smart contract on-chain SEMPRE tem prioridade sobre o Supabase. Qualquer mudança em herdeiros (wallet, allocationType, allocationValue) DEVE passar por `update_config` on-chain primeiro. O Supabase é apenas uma camada de conveniência/cache para UI e notificações.
-- **Validação dupla**: Ao editar/deletar, primeiro validamos a soma das porcentagens no frontend (antes de enviar tx), depois o smart contract valida novamente. Isso evita transações que falham por `InvalidPercentageSum`.
-- **Recálculo automático de percentuais**: Ao deletar um herdeiro com allocation "percentage", redistribuímos proporcionalmente entre os restantes para somar 100%. Se o usuário quer percentuais específicos, deve editar manualmente antes de deletar.
-- **Separação de concerns**: Dados on-chain (wallet, asset, allocation) vs dados off-chain (nome, email, phone). Edição de nome/email/phone não requer tx on-chain. Edição de wallet/allocation requer tx on-chain.
+### Desta sessão (2026-05-05)
+- **Notificações desabilitadas por padrão**: `NOTIFICATIONS_ENABLED=false` até usuário configurar credenciais. Evita erros em dev/test.
+- **Deduplication via notification_logs**: Cada template tem cooldown de 24h para evitar spam. Ex: expiry_warning não é enviado mais de uma vez por dia.
+- **Threshold de depósito**: 0.001 SOL (1M lamports) para evitar notificações de dust ou rent adjustments.
+- **Inline styles em emails**: Templates de email usam CSS inline para máxima compatibilidade com clientes de email (Gmail, Outlook, Apple Mail).
+- **Tokens semânticos no tema**: Todas as cores usam `text-accent-primary`, `bg-bg-base`, `border-border-subtle` em vez de hardcoded `#D4AF37`. Isso permite trocar o tema inteiro alterando apenas o Tailwind config.
 
 ### Decisões anteriores mantidas
-- **No SPL tokens**: Escopo reduzido para SOL nativo apenas. SPL tokens serão feature futura para evitar complexidade de ATA/CPI cross-program.
-- **Ed25519 sysvar verification**: Usar `Sysvar1nstructions1111111111111111111111111` (instruction sysvar) para verificar assinatura on-chain sem custo extra de compute. O keeper monta uma transação com `Ed25519Program` instruction primeiro, depois `heartbeat` instruction que lê o sysvar.
-- **Recovery code no initializeVault**: Se a Devnet demora >30s e dá timeout, o retry falha com "already in use" mas o vault já foi criado. O recovery detecta isso e retorna sucesso, evitando frustração do usuário.
-- **Heir Dashboard separado**: Página dedicada `/heir` para herdeiros visualizarem seus vaults e executarem claim. Isso separa claramente as personas (owner vs heir).
-- **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas.
-- **Best-Effort Sync**: Sync para Supabase não bloqueia redirect. Se falhar, vault já existe on-chain.
-- **Service Role via API Route**: Frontend nunca faz INSERT direto no Supabase. API route `/api/sync-vault` valida on-chain e usa `SUPABASE_SERVICE_ROLE_KEY` server-side.
-- **Basis Points (10000)**: Padrão Solana/DeFi. Frontend converte % → bps ao enviar, bps → % ao exibir.
-- **Asset Mint Não Editável**: Herdeiros não podem ter asset alterado após criação.
+- **On-chain é a fonte da verdade**: Smart contract SEMPRE tem prioridade sobre Supabase.
+- **No SPL tokens**: Escopo reduzido para SOL nativo apenas.
+- **Ed25519 sysvar verification**: `Sysvar1nstructions1111111111111111111111111` para verificação on-chain.
+- **Recovery code no initializeVault**: Detecta vault já criado após timeout na Devnet.
+- **Heir Dashboard separado**: Página dedicada `/heir` para herdeiros.
+- **Service Role via API Route**: Frontend nunca faz INSERT direto no Supabase.
 
 ---
 
-## Files Modified / Created (Esta sessão — 2026-05-04)
+## Files Modified / Created (Esta sessão — 2026-05-05)
 
 ### Frontend
-- `frontend/src/hooks/useVault.ts` — Adicionado `updateConfig()` para chamar instrução on-chain
-- `frontend/src/app/vaults/[address]/page.tsx` — Integração completa do on-chain sync:
-  - `buildHeirsForOnChain()`: Conversão Supabase → on-chain format
-  - `recalculatePercentages()`: Recálculo automático após deleção
-  - `handleDeleteHeir()`: Agora chama `updateConfig` on-chain PRIMEIRO, depois deleta do Supabase
-  - `handleUpdateHeir()`: Agora detecta mudanças on-chain e chama `updateConfig` antes de atualizar Supabase
-  - Loading state no botão de deletar com spinner
+- `frontend/src/components/ui/Button.tsx` — Glow primary dourado
+- `frontend/src/components/layout/Navbar.tsx` — Glass effect, tokens semânticos
+- `frontend/src/app/page.tsx` — Tema gold unificado
+- `frontend/src/app/vaults/page.tsx`, `create/page.tsx`, `[address]/page.tsx`, `heir/page.tsx` — Gradiente radial dourado
+- `frontend/src/components/vault/NotificationPreferences.tsx` — Novo componente de preferências de notificação
+
+### Keeper
+- `keeper/src/services/notifications.ts` — Serviço completo de notificações (novo)
+- `keeper/src/services/vault_monitor.ts` — Integração heartbeat/deposit/expiry notifications
+- `keeper/src/services/claim.ts` — Integração claim_executed notification
+- `keeper/src/routes/api.ts` — Rotas API para notificações
+- `keeper/src/config.ts` — Variáveis de ambiente para notificações
+- `keeper/.env.example` — Template de variáveis SendGrid/Twilio
+- `keeper/package.json` — Dependências `@sendgrid/mail` e `twilio`
 
 ---
 
@@ -195,3 +174,15 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 - **Frontend (Custom Domain)**: https://herita.xyz
 - **Keeper (Railway)**: https://crypto-heranca-keeper-production.up.railway.app
 - **Supabase**: https://naotxbbzuexiaiwbmikr.supabase.co
+
+## Notification Configuration (Para teste real)
+Para testar envio real de notificações, configure no `keeper/.env`:
+```
+NOTIFICATIONS_ENABLED=true
+SENDGRID_API_KEY=SG.xxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@herita.xyz
+TWILIO_ACCOUNT_SID=ACxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxx
+TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
+EXPIRY_WARNING_THRESHOLD_PERCENT=25
+```
