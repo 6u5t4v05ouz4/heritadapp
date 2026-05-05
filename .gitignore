@@ -47,6 +47,11 @@ next-env.d.ts
 .vercel
 *.pem
 
+# Python virtual environments
+venv_pdf/
+venv/
+.venv/
+
 # md files
 *.md
 !/SESSION_STATE.md
