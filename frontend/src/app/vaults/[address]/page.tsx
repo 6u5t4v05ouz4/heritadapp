@@ -18,6 +18,7 @@ import Badge from "@/components/ui/Badge";
 import CopyButton from "@/components/ui/CopyButton";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Skeleton from "@/components/ui/Skeleton";
+import NotificationPreferences from "@/components/vault/NotificationPreferences";
 import { useEnhancedToast } from "@/hooks/useEnhancedToast";
 import { getAddressExplorerUrl, getTxExplorerUrl } from "@/lib/explorer";
 
@@ -1112,6 +1113,11 @@ export default function VaultDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Notifications */}
+      <div className="mt-6">
+        <NotificationPreferences vaultAddress={vaultAddress} />
+      </div>
 
       {/* Timeline / Activity */}
       <Card className="mt-6">

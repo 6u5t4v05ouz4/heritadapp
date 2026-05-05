@@ -9,6 +9,7 @@ import {
   VaultAccount,
 } from './solana';
 import { getSupabaseClient } from '../db/supabase';
+import { sendNotification, checkAndSendExpiryNotifications } from './notifications';
 
 const supabase = getSupabaseClient();
 
@@ -88,6 +89,19 @@ export async function upsertVault(
 
   // Sync assets
   await syncAssets(vaultData.id, pubkey, account.assets);
+
+  // Check and send expiry notifications
+  try {
+    await checkAndSendExpiryNotifications(
+      vaultData.id,
+      vaultAddress,
+      account.lastHeartbeat.toNumber(),
+      account.inactivityPeriod.toNumber(),
+      solBalance
+    );
+  } catch (err) {
+    console.error(`[Monitor] Error checking notifications for vault ${vaultAddress}:`, err);
+  }
 }
 
 // ============================================================

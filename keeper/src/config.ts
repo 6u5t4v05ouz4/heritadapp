@@ -15,6 +15,15 @@ const configSchema = z.object({
   CLAIM_CHECK_INTERVAL_MINUTES: z.string().transform(Number).default('5'),
   PROGRAM_ID: z.string().default('8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  
+  // Notifications
+  SENDGRID_API_KEY: z.string().optional(),
+  SENDGRID_FROM_EMAIL: z.string().email().optional().default('notifications@herita.xyz'),
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_PHONE_NUMBER: z.string().optional(),
+  NOTIFICATIONS_ENABLED: z.string().transform((val) => val === 'true').default('false'),
+  EXPIRY_WARNING_THRESHOLD_PERCENT: z.string().transform(Number).default('25'),
 });
 
 const parsed = configSchema.safeParse(process.env);

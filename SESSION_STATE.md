@@ -107,25 +107,44 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 - [ ] Testar update_config por non-owner (deve falhar)
 - [ ] Stress test: múltiplos vaults, múltiplos heartbeats
 
-### Sprint 8 — Gaps Finais de Mainnet (MÉDIO)
+### Sprint 8 — Notificações (ALTO) 🔄 PRÓXIMO PASSO
+- [ ] **Configurar serviço de email (Resend/SendGrid)**: Criar conta, obter API key, configurar templates de email
+- [ ] **Configurar serviço de SMS (Twilio)**: Criar conta, obter credentials, configurar templates SMS
+- [ ] **Backend de notificações**: Criar tabela `notifications` e lógica de disparo no keeper/API route
+- [ ] **Notificação de expiração iminente**: Alertar owner quando timer estiver < 25% do período de inatividade
+- [ ] **Notificação de heartbeat recebido**: Confirmar para owner que heartbeat foi registrado com sucesso
+- [ ] **Notificação de depósito**: Alertar owner quando fundos são depositados no vault
+- [ ] **Notificação para herdeiros**: Alertar herdeiros quando vault expirar e claim estiver disponível
+- [ ] **Frontend — Preferências de notificação**: Tela para owner configurar quais notificações deseja receber e por qual canal (email/SMS)
+- [ ] **Frontend — Notificação de expiração**: Toast/banner no dashboard do owner quando timer estiver crítico
+
+### Sprint 9 — Keeper Stability & UX (MÉDIO)
+- [ ] **Retry com backoff**: Implementar retry automático no keeper para transações que falham por congestionamento
+- [ ] **Alerting quando `available_sol < gas_reserve`**: Notificar owner se saldo do vault estiver abaixo do gas reserve
+- [ ] **Paginação/filtros**: Lista de vaults com paginação e filtros por status
+- [ ] **Preview de distribuição**: Mostrar quanto cada heir receberá antes do claim
+
+### Sprint 10 — Sincronização Automática e Multi-sig (MÉDIO)
+- [ ] **Sincronização automática**: Detectar quando Supabase está out of sync com on-chain e sugerir sync
+- [ ] **Multi-sig heartbeat**: Permitir múltiplos signers para heartbeat
+- [ ] **SPL Token Support**: `deposit_token`, `claim_token`, múltiplos assets (feature avançada)
+
+---
+
+## 🚨 MAINNET — ÚLTIMO PASSO DO PROJETO (NÃO IMPLEMENTAR AGORA)
+
+> ⚠️ **Tudo relacionado a Mainnet será implementado APENAS no final do projeto**, após todas as features, testes e validações estarem 100% concluídas.
+
+### Sprint 11 — Gaps Finais de Mainnet (MÉDIO)
 - [ ] Ajustar `MIN_INACTIVITY_PERIOD` de 60s (teste) para 30 dias antes do mainnet
 - [ ] Verificar `RENT_EXEMPT_BALANCE` e `MAX_HEIRS` para mainnet
 - [ ] Ajustar `GAS_RESERVE_MIN` se necessário
 
-### Sprint 9 — Auditoria e Deploy Mainnet
+### Sprint 12 — Auditoria e Deploy Mainnet
 - [ ] Auditoria de segurança do contrato (Trail of Bits / OtterSec)
 - [ ] Deploy para mainnet-beta
 - [ ] Atualizar frontend para mainnet (RPC, Program ID, explorer URLs)
 - [ ] Documentação final do protocolo
-
-### Features Futuras (Pós-MVP)
-1. **SPL Token Support**: `deposit_token`, `claim_token`, múltiplos assets
-2. **Notifications**: Resend/SendGrid email, Twilio SMS — alertas de expiração
-3. **Keeper Stability**: Retry com backoff, alerting quando `available_sol < gas_reserve`
-4. **Preview de distribuição**: Mostrar quanto cada heir receberá antes do claim
-5. **Multi-sig heartbeat**: Permitir múltiplos signers
-6. **Paginação/filtros**: Lista de vaults com paginação e filtros por status
-7. **Sincronização automática**: Detectar quando Supabase está out of sync com on-chain e sugerir sync
 
 ---
 

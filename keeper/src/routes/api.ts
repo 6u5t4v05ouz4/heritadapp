@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { processHeartbeat, HeartbeatRequest } from '../services/heartbeat';
 import { findExpiredVaults, findVaultsExpiringSoon } from '../services/vault_monitor';
 import { getSupabaseClient } from '../db/supabase';
+import { sendNotification, notificationsConfig } from '../services/notifications';
 
 const router = Router();
 const supabase = getSupabaseClient();
@@ -190,6 +191,154 @@ router.post('/notifications/register', async (req: Request, res: Response) => {
       error: 'internal_error',
     });
   }
+});
+
+// ============================================================
+// GET /api/v1/notifications/preferences/:vault_address
+// List notification preferences for a vault
+// ============================================================
+router.get('/notifications/preferences/:vault_address', async (req: Request, res: Response) => {
+  try {
+    const { vault_address } = req.params;
+
+    const { data: vaultData, error: vaultError } = await supabase
+      .from('vaults')
+      .select('id')
+      .eq('vault_address', vault_address)
+      .single();
+
+    if (vaultError || !vaultData) {
+      return res.status(404).json({
+        success: false,
+        error: 'vault_not_found',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq('vault_id', vaultData.id);
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (err: any) {
+    console.error('[API] Get preferences error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'internal_error',
+    });
+  }
+});
+
+// ============================================================
+// DELETE /api/v1/notifications/preferences/:id
+// Remove a notification preference
+// ============================================================
+router.delete('/notifications/preferences/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from('notification_preferences')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      success: true,
+    });
+  } catch (err: any) {
+    console.error('[API] Delete preference error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'internal_error',
+    });
+  }
+});
+
+// ============================================================
+// POST /api/v1/notifications/test
+// Send a test notification
+// ============================================================
+const testNotificationSchema = z.object({
+  vault_address: z.string().min(32).max(44),
+  channel: z.enum(['email', 'sms']),
+  address: z.string().min(1),
+  template: z.enum(['heartbeat_received', 'deposit_received', 'expiry_warning']).default('heartbeat_received'),
+});
+
+router.post('/notifications/test', async (req: Request, res: Response) => {
+  try {
+    const parsed = testNotificationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_input',
+        details: parsed.error.format(),
+      });
+    }
+
+    const { vault_address, channel, address, template } = parsed.data;
+
+    const { data: vaultData, error: vaultError } = await supabase
+      .from('vaults')
+      .select('id')
+      .eq('vault_address', vault_address)
+      .single();
+
+    if (vaultError || !vaultData) {
+      return res.status(404).json({
+        success: false,
+        error: 'vault_not_found',
+      });
+    }
+
+    await sendNotification({
+      vaultId: vaultData.id,
+      template,
+      recipientType: 'owner',
+      data: {
+        vaultAddress: vault_address,
+        timeRemaining: '30 days',
+        amount: '1.5',
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Test notification sent',
+    });
+  } catch (err: any) {
+    console.error('[API] Test notification error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'internal_error',
+      message: err.message,
+    });
+  }
+});
+
+// ============================================================
+// GET /api/v1/notifications/status
+// Check notification service status
+// ============================================================
+router.get('/notifications/status', async (_req: Request, res: Response) => {
+  return res.status(200).json({
+    success: true,
+    config: {
+      enabled: notificationsConfig.enabled,
+      emailConfigured: notificationsConfig.emailConfigured,
+      smsConfigured: notificationsConfig.smsConfigured,
+      fromEmail: notificationsConfig.fromEmail,
+      twilioNumber: notificationsConfig.twilioNumber,
+      expiryThresholdPercent: notificationsConfig.expiryThresholdPercent,
+    },
+  });
 });
 
 // ============================================================
