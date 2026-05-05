@@ -1,13 +1,14 @@
 # Session State
 
-> Last updated: 2026-04-30
+> Last updated: 2026-05-04
 > Session started: 2026-04-26 (UI Redesign + Supabase Integration)
 > Session continued: 2026-04-30 (Contract Finalization + Security Hardening)
+> Session continued: 2026-05-04 (On-Chain Sync + Critical Bug Fix)
 
 ## Current Task
-**Finalização do Crypto-Heranca: Contrato, Supabase, Keeper, Frontend**
+**Sincronização On-Chain para Edição/Deleção de Herdeiros**
 
-Foco em finalizar o protocolo para deploy mainnet: corrigir gaps no contrato, endurecer segurança do Supabase, integrar keeper com verificação Ed25519 real, e melhorar UX do frontend com dashboard para herdeiros.
+Corrigir o gap crítico onde alterações de herdeiros no frontend (Supabase) não eram refletidas on-chain, resultando em distribuição incorreta no claim.
 
 ---
 
@@ -60,6 +61,29 @@ Foco em finalizar o protocolo para deploy mainnet: corrigir gaps no contrato, en
 - [x] **Create Vault UX**: Detecta quando recovery code é acionado (Devnet lenta) e mostra warning apropriado
 - [x] **Build**: `next build` passa com 15 routes incluindo `/heir`
 
+### Sprint 5 — Sincronização On-Chain (CRÍTICO)
+- [x] **Bug identificado**: Edição/deleção de herdeiros no frontend apenas alterava o Supabase, deixando o smart contract on-chain desatualizado. Resultado: claim distribuía para herdeiros antigos/excluídos.
+- [x] **`useVault.ts` — `updateConfig()`**: Nova função no hook que chama a instrução `update_config` do programa Anchor on-chain
+  - Aceita: `newHeirs`, `newInactivityPeriodSeconds`, `newKeeperFeeBps`, `newGasReserveLamports`
+  - Converte herdeiros para formato `HeirInput` (wallet → PublicKey, allocationType enum, allocationValue BN)
+- [x] **`vaults/[address]/page.tsx` — `buildHeirsForOnChain()`**: Helper que converte herdeiros do Supabase para formato on-chain
+- [x] **`vaults/[address]/page.tsx` — `recalculatePercentages()`**: Helper que recalcula automaticamente percentuais para somarem 10.000 bps (100%) após remoção de um herdeiro
+- [x] **`handleDeleteHeir` atualizado**:
+  1. Pergunta confirmação informando que atualizará on-chain
+  2. Recalcula percentuais dos herdeiros restantes
+  3. Valida se soma dá 100%
+  4. Chama `updateConfig` on-chain para remover o herdeiro
+  5. Depois deleta do Supabase
+  6. Refresh do vault para refletir estado atualizado
+- [x] **`handleUpdateHeir` atualizado**:
+  1. Detecta se mudaram dados on-chain (wallet, allocationType, allocationValue)
+  2. Se mudou: chama `updateConfig` on-chain PRIMEIRO
+  3. Valida soma de percentuais = 100%
+  4. Depois atualiza no Supabase (nome, email, phone sempre atualizam)
+  5. Refresh do vault
+- [x] **Loading state no botão de deletar**: Spinner animado (`RefreshCw`) enquanto processa transação on-chain, evita cliques duplos
+- [x] **Build**: `next build` passa — 17 routes
+
 ---
 
 ## Active Problem / Blocker
@@ -69,25 +93,30 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 
 ## What's Pending / Next Steps
 
-### Gap 5 — Ajustar rent-exempt e constantes de mainnet (MÉDIO)
-- Verificar `RENT_EXEMPT_BALANCE` e `MAX_HEIRS` para mainnet
-- Ajustar `GAS_RESERVE_MIN` se necessário
+### Sprint 6 — Testes End-to-End e Validação (ALTO)
+- [ ] **Teste de deleção**: Criar vault com 2 heirs (75%/25%), deletar um, verificar claim distribui 100% para o restante
+- [ ] **Teste de edição de wallet**: Criar vault com 1 heir, editar wallet, verificar claim manda para nova wallet
+- [ ] **Teste de edição de percentual**: Criar vault com 2 heirs (50%/50%), editar para (30%/70%), verificar claim respeita nova distribuição
+- [ ] **Teste completo E2E**: create → deposit → heartbeat → edit heir → delete heir → wait expiry → claim
+- [ ] **Teste de validação**: Tentar deletar herdeiro quando restante não soma 100% — deve bloquear
 
-### Gap 6 — Testes de segurança e edge cases (MÉDIO)
-- Testar claim com 0 heirs
-- Testar heartbeat com proof inválido
-- Testar deposit + cancel sequence
+### Sprint 7 — Testes de Segurança e Edge Cases (MÉDIO)
+- [ ] Testar claim com 0 heirs (vault vazio após delete all)
+- [ ] Testar heartbeat com proof inválido
+- [ ] Testar deposit + cancel sequence
+- [ ] Testar update_config por non-owner (deve falhar)
+- [ ] Stress test: múltiplos vaults, múltiplos heartbeats
 
-### Sprint 5 — Testes End-to-End e Stress
-- Teste completo: create → deposit → heartbeat → wait expiry → claim
-- Teste com múltiplos heirs
-- Stress test: múltiplos vaults, múltiplos heartbeats
+### Sprint 8 — Gaps Finais de Mainnet (MÉDIO)
+- [ ] Ajustar `MIN_INACTIVITY_PERIOD` de 60s (teste) para 30 dias antes do mainnet
+- [ ] Verificar `RENT_EXEMPT_BALANCE` e `MAX_HEIRS` para mainnet
+- [ ] Ajustar `GAS_RESERVE_MIN` se necessário
 
-### Sprint 6 — Auditoria e Deploy Mainnet
-- Auditoria de segurança do contrato
-- Deploy para mainnet-beta
-- Atualizar frontend para mainnet
-- Documentação final
+### Sprint 9 — Auditoria e Deploy Mainnet
+- [ ] Auditoria de segurança do contrato (Trail of Bits / OtterSec)
+- [ ] Deploy para mainnet-beta
+- [ ] Atualizar frontend para mainnet (RPC, Program ID, explorer URLs)
+- [ ] Documentação final do protocolo
 
 ### Features Futuras (Pós-MVP)
 1. **SPL Token Support**: `deposit_token`, `claim_token`, múltiplos assets
@@ -96,19 +125,23 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 4. **Preview de distribuição**: Mostrar quanto cada heir receberá antes do claim
 5. **Multi-sig heartbeat**: Permitir múltiplos signers
 6. **Paginação/filtros**: Lista de vaults com paginação e filtros por status
+7. **Sincronização automática**: Detectar quando Supabase está out of sync com on-chain e sugerir sync
 
 ---
 
 ## Key Decisions & Rationale
 
-### Desta desta sessão (2026-04-30)
+### Desta sessão (2026-05-04)
+- **On-chain é a fonte da verdade**: O smart contract on-chain SEMPRE tem prioridade sobre o Supabase. Qualquer mudança em herdeiros (wallet, allocationType, allocationValue) DEVE passar por `update_config` on-chain primeiro. O Supabase é apenas uma camada de conveniência/cache para UI e notificações.
+- **Validação dupla**: Ao editar/deletar, primeiro validamos a soma das porcentagens no frontend (antes de enviar tx), depois o smart contract valida novamente. Isso evita transações que falham por `InvalidPercentageSum`.
+- **Recálculo automático de percentuais**: Ao deletar um herdeiro com allocation "percentage", redistribuímos proporcionalmente entre os restantes para somar 100%. Se o usuário quer percentuais específicos, deve editar manualmente antes de deletar.
+- **Separação de concerns**: Dados on-chain (wallet, asset, allocation) vs dados off-chain (nome, email, phone). Edição de nome/email/phone não requer tx on-chain. Edição de wallet/allocation requer tx on-chain.
+
+### Decisões anteriores mantidas
 - **No SPL tokens**: Escopo reduzido para SOL nativo apenas. SPL tokens serão feature futura para evitar complexidade de ATA/CPI cross-program.
 - **Ed25519 sysvar verification**: Usar `Sysvar1nstructions1111111111111111111111111` (instruction sysvar) para verificar assinatura on-chain sem custo extra de compute. O keeper monta uma transação com `Ed25519Program` instruction primeiro, depois `heartbeat` instruction que lê o sysvar.
 - **Recovery code no initializeVault**: Se a Devnet demora >30s e dá timeout, o retry falha com "already in use" mas o vault já foi criado. O recovery detecta isso e retorna sucesso, evitando frustração do usuário.
 - **Heir Dashboard separado**: Página dedicada `/heir` para herdeiros visualizarem seus vaults e executarem claim. Isso separa claramente as personas (owner vs heir).
-- **Type narrowing para enums Anchor**: Em vez de usar union types discriminatórias diretamente no frontend, extrair string status (`"active" | "cancelled" | "claimed"`) do objeto Anchor para evitar erros de TypeScript.
-
-### Decisões anteriores mantidas
 - **Lazy Supabase Client**: Evita erro de build SSR quando env vars não estão definidas.
 - **Best-Effort Sync**: Sync para Supabase não bloqueia redirect. Se falhar, vault já existe on-chain.
 - **Service Role via API Route**: Frontend nunca faz INSERT direto no Supabase. API route `/api/sync-vault` valida on-chain e usa `SUPABASE_SERVICE_ROLE_KEY` server-side.
@@ -117,30 +150,16 @@ Nenhum blocker. Build passando em todos os componentes (Rust, Keeper, Frontend).
 
 ---
 
-## Files Modified / Created (Esta sessão — 2026-04-30)
-
-### Rust Program (WSL)
-- `~/crypto-heranca-build/programs/crypto_heranca/src/instructions/heartbeat.rs` — Verificação Ed25519 real com sysvar
-- `~/crypto-heranca-build/programs/crypto_heranca/src/lib.rs` — Fix: cancel vault sem SPL (apenas SOL)
-
-### Keeper
-- `keeper/src/services/heartbeat.ts` — `buildEd25519Instruction()` + `submitHeartbeat()` Modalidade B
-- `keeper/tests/heartbeat.test.ts` — Testes de validação de assinatura
-- `keeper/jest.config.js` — Configuração para `tsconfig.test.json`
-- `keeper/tsconfig.test.json` — Configuração de testes com types Jest
-- `keeper/package.json` — Adicionado `@types/jest`
-
-### Supabase
-- `keeper/src/db/migrations/001_rls_security_fix.sql` — RLS policies para todas as tabelas
+## Files Modified / Created (Esta sessão — 2026-05-04)
 
 ### Frontend
-- `frontend/src/lib/explorer.ts` — **NEW** URLs para Solana Explorer/Solscan
-- `frontend/src/hooks/useEnhancedToast.tsx` — **NEW** Toast com link para explorer
-- `frontend/src/hooks/useHeirVaults.ts` — **NEW** Hook para vaults de herdeiro
-- `frontend/src/app/heir/page.tsx` — **NEW** Dashboard para herdeiros
-- `frontend/src/app/vaults/[address]/page.tsx` — Toast enhanced, explorer link
-- `frontend/src/app/vaults/create/page.tsx` — Recovery detection, toast enhanced
-- `frontend/src/components/layout/Navbar.tsx` — Link "Heir Dashboard"
+- `frontend/src/hooks/useVault.ts` — Adicionado `updateConfig()` para chamar instrução on-chain
+- `frontend/src/app/vaults/[address]/page.tsx` — Integração completa do on-chain sync:
+  - `buildHeirsForOnChain()`: Conversão Supabase → on-chain format
+  - `recalculatePercentages()`: Recálculo automático após deleção
+  - `handleDeleteHeir()`: Agora chama `updateConfig` on-chain PRIMEIRO, depois deleta do Supabase
+  - `handleUpdateHeir()`: Agora detecta mudanças on-chain e chama `updateConfig` antes de atualizar Supabase
+  - Loading state no botão de deletar com spinner
 
 ---
 
