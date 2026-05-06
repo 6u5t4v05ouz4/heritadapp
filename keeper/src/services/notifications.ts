@@ -356,7 +356,7 @@ export async function checkAndSendExpiryNotifications(
   const thresholdPercent = config.EXPIRY_WARNING_THRESHOLD_PERCENT;
   const thresholdSeconds = inactivityPeriod * (thresholdPercent / 100);
 
-  // 1. Expiry warning (owner)
+  // 1. Expiry warning (owner + heirs)
   if (remaining <= thresholdSeconds && remaining > 0) {
     const alreadySent = await wasNotificationSentRecently(vaultId, 'expiry_warning', 24);
     if (!alreadySent) {
@@ -364,19 +364,47 @@ export async function checkAndSendExpiryNotifications(
       const hours = Math.floor((remaining % 86400) / 3600);
       const timeRemaining = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
 
+      // Notify owner
       await sendNotification({
         vaultId,
         template: 'expiry_warning',
         recipientType: 'owner',
         data: { vaultAddress, timeRemaining },
       });
+
+      // Notify heirs (so they can prepare)
+      const { data: heirs } = await supabase
+        .from('heirs')
+        .select('wallet_address, name')
+        .eq('vault_id', vaultId);
+
+      if (heirs && heirs.length > 0) {
+        for (const heir of heirs) {
+          await sendNotification({
+            vaultId,
+            template: 'expiry_warning',
+            recipientType: 'heir',
+            heirWalletAddress: heir.wallet_address,
+            data: { vaultAddress, timeRemaining, heirName: heir.name || undefined },
+          });
+        }
+      }
     }
   }
 
-  // 2. Vault expired (heirs)
+  // 2. Vault expired (owner + heirs)
   if (remaining <= 0) {
     const alreadySent = await wasNotificationSentRecently(vaultId, 'vault_expired', 24);
     if (!alreadySent) {
+      // Notify owner
+      await sendNotification({
+        vaultId,
+        template: 'vault_expired',
+        recipientType: 'owner',
+        data: { vaultAddress },
+      });
+
+      // Notify heirs
       const { data: heirs } = await supabase
         .from('heirs')
         .select('wallet_address, name')

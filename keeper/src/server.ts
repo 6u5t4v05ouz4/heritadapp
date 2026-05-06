@@ -7,13 +7,16 @@ import apiRoutes from './routes/api';
 
 export function createServer(): Application {
   const app = express();
-
-  // Security middleware
-  app.use(helmet());
+  // CORS must be before helmet so preflight OPTIONS responses include correct headers
   app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+
+  // Security middleware (after CORS to avoid conflicting headers)
+  app.use(helmet({
+    crossOriginResourcePolicy: false, // Don't set CORP header — conflicts with CORS
   }));
 
   // Rate limiting

@@ -72,19 +72,40 @@ export async function executeClaim(
       ]);
     }
 
-    // Send claim executed notification
+    // Send claim executed notification (owner + heirs)
     try {
       if (vaultData) {
+        const claimData = {
+          vaultAddress: vaultAddress.toBase58(),
+          ownerAddress: account.owner.toBase58(),
+          explorerUrl: `https://explorer.solana.com/tx/${tx}?cluster=devnet`,
+        };
+
+        // Notify owner
         await sendNotification({
           vaultId: vaultData.id,
           template: 'claim_executed',
           recipientType: 'owner',
-          data: {
-            vaultAddress: vaultAddress.toBase58(),
-            ownerAddress: account.owner.toBase58(),
-            explorerUrl: `https://explorer.solana.com/tx/${tx}?cluster=devnet`,
-          },
+          data: claimData,
         });
+
+        // Notify heirs
+        const { data: heirs } = await supabase
+          .from('heirs')
+          .select('wallet_address, name')
+          .eq('vault_id', vaultData.id);
+
+        if (heirs && heirs.length > 0) {
+          for (const heir of heirs) {
+            await sendNotification({
+              vaultId: vaultData.id,
+              template: 'claim_executed',
+              recipientType: 'heir',
+              heirWalletAddress: heir.wallet_address,
+              data: { ...claimData, heirName: heir.name || undefined },
+            });
+          }
+        }
       }
     } catch (notifyErr) {
       console.error(`[Claim] Error sending notification for vault ${vaultAddress.toBase58()}:`, notifyErr);

@@ -107,18 +107,16 @@ export async function upsertVault(
 
   // Send change notifications (only for existing vaults, not new ones)
   if (vaultId) {
-    // Heartbeat detected
+    const explorerUrl = `https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`;
+
+    // Heartbeat detected → notify owner
     if (lastHeartbeatTs > existingHeartbeat) {
       try {
         await sendNotification({
           vaultId,
           template: 'heartbeat_received',
           recipientType: 'owner',
-          data: {
-            vaultAddress,
-            ownerAddress,
-            explorerUrl: `https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`,
-          },
+          data: { vaultAddress, ownerAddress, explorerUrl },
         });
       } catch (err) {
         console.error(`[Monitor] Error sending heartbeat notification for vault ${vaultAddress}:`, err);
@@ -129,20 +127,36 @@ export async function upsertVault(
     const depositThreshold = 0.001 * 1e9; // 0.001 SOL in lamports
     if (solBalance > existingBalance + depositThreshold) {
       const depositAmount = ((solBalance - existingBalance) / 1e9).toFixed(4);
+      const depositData = {
+        vaultAddress,
+        ownerAddress,
+        amount: `${depositAmount} SOL`,
+        explorerUrl,
+      };
+
+      // Notify owner
       try {
-        await sendNotification({
-          vaultId,
-          template: 'deposit_received',
-          recipientType: 'owner',
-          data: {
-            vaultAddress,
-            ownerAddress,
-            amount: `${depositAmount} SOL`,
-            explorerUrl: `https://explorer.solana.com/address/${vaultAddress}?cluster=devnet`,
-          },
-        });
+        await sendNotification({ vaultId, template: 'deposit_received', recipientType: 'owner', data: depositData });
       } catch (err) {
-        console.error(`[Monitor] Error sending deposit notification for vault ${vaultAddress}:`, err);
+        console.error(`[Monitor] Error sending deposit notification (owner) for vault ${vaultAddress}:`, err);
+      }
+
+      // Notify heirs
+      try {
+        const { data: heirs } = await supabase.from('heirs').select('wallet_address, name').eq('vault_id', vaultId);
+        if (heirs && heirs.length > 0) {
+          for (const heir of heirs) {
+            await sendNotification({
+              vaultId,
+              template: 'deposit_received',
+              recipientType: 'heir',
+              heirWalletAddress: heir.wallet_address,
+              data: { ...depositData, heirName: heir.name || undefined },
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`[Monitor] Error sending deposit notification (heirs) for vault ${vaultAddress}:`, err);
       }
     }
   }
