@@ -38,18 +38,25 @@ export default function HeirPage() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string>("");
   const [now, setNow] = useState(Date.now());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Real-time timer tick (every second)
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // Initial load + auto-refresh polling (every 15 seconds)
   useEffect(() => {
     if (!connected || !publicKey) {
       setVaults([]);
       return;
     }
     loadVaults();
+    const pollInterval = setInterval(() => {
+      loadVaults();
+    }, 15000);
+    return () => clearInterval(pollInterval);
   }, [connected, publicKey]);
 
   const loadVaults = async () => {
@@ -57,6 +64,7 @@ export default function HeirPage() {
     try {
       const data = await fetchHeirVaults();
       setVaults(data);
+      setLastUpdated(new Date());
     } catch (err: any) {
       showError("Failed to load vaults", err.message);
     } finally {
@@ -137,10 +145,25 @@ export default function HeirPage() {
       <div className="absolute top-0 inset-x-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/5 via-bg-base to-bg-base pointer-events-none" />
       <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
       <ToastContainer />
-      <PageHeader
-        title="Heir Dashboard"
-        description="Vaults where you are listed as an heir"
-      />
+      <div className="flex items-start justify-between">
+        <PageHeader
+          title="Heir Dashboard"
+          description="Vaults where you are listed as an heir"
+        />
+        {connected && vaults.length > 0 && (
+          <div className="flex items-center gap-2 text-[10px] text-text-tertiary mt-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span>
+              {lastUpdated
+                ? `Updated ${Math.floor((Date.now() - lastUpdated.getTime()) / 1000)}s ago`
+                : "Syncing..."}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Stats */}
       {vaults.length > 0 && (

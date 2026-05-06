@@ -174,6 +174,7 @@ Nenhum blocker técnico. Build passando em todos os componentes.
 - `frontend/src/app/api/sync-vault/route.ts` — Corrigido `allocation_value` para salvar em bps (x100) para percentual
 - `frontend/src/app/vaults/[address]/page.tsx` — Adicionados helpers `formatAllocationPercent()` e `calculateHeirEstimate()` backward-compatible
 - `notification_preferences.is_verified` — Bug crítico descoberto: a coluna tem default `false`, e o keeper ignora preferências não verificadas (`!pref.is_verified → skip`). Todas as inserções agora setam `is_verified: true`. Registros existentes no banco já foram atualizados para `true`.
+- `frontend/src/app/heir/page.tsx` — Adicionado **polling automático** a cada 15 segundos para rebuscar dados on-chain (saldo, timer, status). Antes os dados só atualizavam com F5. Agora o dashboard do herdeiro é dinâmico com indicador "Live" mostrando tempo desde última atualização.
 
 ### Documentação
 - `docs/NOTIFICATION_SETUP.md` — Guia completo de configuração de notificações (novo)
