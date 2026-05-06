@@ -16,6 +16,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import { useEnhancedToast } from "@/hooks/useEnhancedToast";
+import { keeperUrl } from "@/lib/keeper";
 
 interface NotificationPreference {
   id: string;
@@ -51,7 +52,7 @@ export default function NotificationPreferences({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/v1/notifications/preferences/${vaultAddress}`
+        keeperUrl(`/api/v1/notifications/preferences/${vaultAddress}`)
       );
       if (res.ok) {
         const data = await res.json();
@@ -72,7 +73,7 @@ export default function NotificationPreferences({
 
     setSaving(true);
     try {
-      const res = await fetch("/api/v1/notifications/register", {
+      const res = await fetch(keeperUrl("/api/v1/notifications/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,7 +104,7 @@ export default function NotificationPreferences({
     if (!confirm("Remove this notification preference?")) return;
 
     try {
-      const res = await fetch(`/api/v1/notifications/preferences/${id}`, {
+      const res = await fetch(keeperUrl(`/api/v1/notifications/preferences/${id}`), {
         method: "DELETE",
       });
 
@@ -119,7 +120,7 @@ export default function NotificationPreferences({
   const handleTest = async (pref: NotificationPreference) => {
     setTestingId(pref.id);
     try {
-      const res = await fetch("/api/v1/notifications/test", {
+      const res = await fetch(keeperUrl("/api/v1/notifications/test"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

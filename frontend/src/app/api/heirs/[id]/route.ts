@@ -127,6 +127,7 @@ export async function PUT(
             channel: "email",
             address: email,
             heir_wallet_address: heirData.wallet_address,
+            is_verified: true,
           });
         }
         if (phone) {
@@ -136,6 +137,7 @@ export async function PUT(
             channel: "sms",
             address: phone,
             heir_wallet_address: heirData.wallet_address,
+            is_verified: true,
           });
         }
 

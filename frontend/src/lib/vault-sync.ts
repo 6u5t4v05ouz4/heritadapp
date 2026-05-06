@@ -17,6 +17,8 @@ interface VaultSyncData {
   gasReserveLamports: number;
   solBalance: number;
   heirs: HeirContact[];
+  ownerEmail?: string;
+  ownerPhone?: string;
 }
 
 export async function syncVaultToSupabase(data: VaultSyncData): Promise<void> {

@@ -27,6 +27,8 @@ interface SyncPayload {
   gasReserveLamports: number;
   solBalance: number;
   heirs: HeirContact[];
+  ownerEmail?: string;
+  ownerPhone?: string;
 }
 
 function getSupabaseServiceClient() {
@@ -182,7 +184,12 @@ export async function POST(request: NextRequest) {
         asset_mint: h.asset,
         allocation_type:
           h.allocationType === "percentage" ? "percentage" : "fixed_amount",
-        allocation_value: Number(h.allocationValue),
+        // Store in bps (basis points) to match on-chain format
+        // e.g. 50% -> 5000 bps. This keeps Supabase consistent with on-chain.
+        allocation_value:
+          h.allocationType === "percentage"
+            ? Number(h.allocationValue) * 100
+            : Number(h.allocationValue),
       }));
 
       const { error: heirsError } = await supabase
@@ -203,6 +210,7 @@ export async function POST(request: NextRequest) {
           channel: "email",
           address: h.email,
           heir_wallet_address: h.wallet,
+          is_verified: true,
         });
       }
       if (h.phone) {
@@ -212,6 +220,7 @@ export async function POST(request: NextRequest) {
           channel: "sms",
           address: h.phone,
           heir_wallet_address: h.wallet,
+          is_verified: true,
         });
       }
     }
@@ -225,6 +234,35 @@ export async function POST(request: NextRequest) {
           "[api/sync-vault] Notification insert error:",
           notifError
         );
+      }
+    }
+
+    // Insert owner notification preferences (if provided)
+    const ownerNotifications = [];
+    if (body.ownerEmail) {
+      ownerNotifications.push({
+        vault_id: vaultId,
+        recipient_type: "owner",
+        channel: "email",
+        address: body.ownerEmail,
+        is_verified: true,
+      });
+    }
+    if (body.ownerPhone) {
+      ownerNotifications.push({
+        vault_id: vaultId,
+        recipient_type: "owner",
+        channel: "sms",
+        address: body.ownerPhone,
+        is_verified: true,
+      });
+    }
+    if (ownerNotifications.length > 0) {
+      const { error: ownerNotifError } = await supabase
+        .from("notification_preferences")
+        .insert(ownerNotifications);
+      if (ownerNotifError) {
+        console.error("[api/sync-vault] Owner notification insert error:", ownerNotifError);
       }
     }
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { processHeartbeat, HeartbeatRequest } from '../services/heartbeat';
 import { findExpiredVaults, findVaultsExpiringSoon } from '../services/vault_monitor';
 import { getSupabaseClient } from '../db/supabase';
-import { sendNotification, notificationsConfig } from '../services/notifications';
+import { sendNotification, sendDirectNotification, notificationsConfig } from '../services/notifications';
 
 const router = Router();
 const supabase = getSupabaseClient();
@@ -174,6 +174,7 @@ router.post('/notifications/register', async (req: Request, res: Response) => {
         channel,
         address,
         recipient_type,
+        is_verified: true,
       })
       .select()
       .single();
@@ -285,33 +286,16 @@ router.post('/notifications/test', async (req: Request, res: Response) => {
 
     const { vault_address, channel, address, template } = parsed.data;
 
-    const { data: vaultData, error: vaultError } = await supabase
-      .from('vaults')
-      .select('id')
-      .eq('vault_address', vault_address)
-      .single();
-
-    if (vaultError || !vaultData) {
-      return res.status(404).json({
-        success: false,
-        error: 'vault_not_found',
-      });
-    }
-
-    await sendNotification({
-      vaultId: vaultData.id,
-      template,
-      recipientType: 'owner',
-      data: {
-        vaultAddress: vault_address,
-        timeRemaining: '30 days',
-        amount: '1.5',
-      },
+    // Send directly to the specified address (bypass preferences lookup)
+    await sendDirectNotification(channel, address, template, {
+      vaultAddress: vault_address,
+      timeRemaining: '30 days',
+      amount: '1.5',
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Test notification sent',
+      message: `Test ${channel} notification sent to ${address}`,
     });
   } catch (err: any) {
     console.error('[API] Test notification error:', err);

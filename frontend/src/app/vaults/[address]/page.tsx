@@ -45,6 +45,25 @@ export default function VaultDetailPage() {
   const [isVaultSynced, setIsVaultSynced] = useState<boolean | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Helpers for allocation value (handles both bps and raw percentage during transition)
+  const formatAllocationPercent = (value: number): string => {
+    if (value > 1000) {
+      // Value is in bps (e.g. 5000 = 50%)
+      return `${(value / 100).toFixed(0)}%`;
+    }
+    // Value is in raw percentage (e.g. 50 = 50%)
+    return `${value}%`;
+  };
+
+  const calculateHeirEstimate = (value: number, balanceSol: number): string => {
+    if (value > 1000) {
+      // Value is in bps (e.g. 5000 = 50%)
+      return (balanceSol * (value / 10000)).toFixed(5);
+    }
+    // Value is in raw percentage (e.g. 50 = 50%)
+    return (balanceSol * (value / 100)).toFixed(5);
+  };
+
   // Edit modal state
   const [editingHeir, setEditingHeir] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -908,12 +927,12 @@ export default function VaultDetailPage() {
                       <div className="flex flex-col items-end">
                         <span className="text-text-primary font-medium font-mono text-sm">
                           {heir.allocation_type === "percentage"
-                            ? `${(heir.allocation_value / 100).toFixed(0)}%`
+                            ? formatAllocationPercent(heir.allocation_value)
                             : heir.allocation_value}
                         </span>
                         {heir.allocation_type === "percentage" && (
                           <span className="text-[10px] text-emerald-400 font-mono mt-0.5">
-                            Est: {((vaultBalance / LAMPORTS_PER_SOL) * (heir.allocation_value / 10000)).toFixed(5)} SOL
+                            Est: {calculateHeirEstimate(heir.allocation_value, vaultBalance / LAMPORTS_PER_SOL)} SOL
                           </span>
                         )}
                       </div>
@@ -971,12 +990,12 @@ export default function VaultDetailPage() {
                     <div className="flex flex-col items-end">
                       <span className="text-text-primary font-medium font-mono">
                         {heir.allocationType?.percentage !== undefined
-                          ? `${(Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 100).toFixed(0)}%`
+                          ? formatAllocationPercent(Number(heir.allocationValue?.toString?.() || heir.allocationValue))
                           : heir.allocationValue?.toString?.() || heir.allocationValue}
                       </span>
                       {heir.allocationType?.percentage !== undefined && (
                         <span className="text-[10px] text-emerald-400 font-mono mt-0.5">
-                          Est: {((vaultBalance / LAMPORTS_PER_SOL) * (Number(heir.allocationValue?.toString?.() || heir.allocationValue) / 10000)).toFixed(5)} SOL
+                          Est: {calculateHeirEstimate(Number(heir.allocationValue?.toString?.() || heir.allocationValue), vaultBalance / LAMPORTS_PER_SOL)} SOL
                         </span>
                       )}
                     </div>

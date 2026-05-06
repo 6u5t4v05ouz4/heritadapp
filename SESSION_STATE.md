@@ -5,6 +5,7 @@
 > Session continued: 2026-04-30 (Contract Finalization + Security Hardening)
 > Session continued: 2026-05-04 (On-Chain Sync + Critical Bug Fix)
 > Session continued: 2026-05-05 (Gold Theme Unification + Notification System)
+> Session continued: 2026-05-05 (Bug Fixes: Notifications 404 + Heir Allocation Display)
 
 ## Current Task
 **Sistema de Notificações (Email + SMS) e Tema Gold Premium**
@@ -67,19 +68,27 @@ Implementar notificações via SendGrid (email) e Twilio (SMS) para alertar owne
 - [x] **Banner crítico**: Alerta visual na vault detail page quando timer < 25% com CTA "Send Heartbeat Now"
 - [x] **Build**: Frontend e keeper passam (`npx tsc --noEmit` + `next build`)
 
+### Bug Fixes — 2026-05-05
+- [x] **Fix 404 on notifications**: `NotificationPreferences.tsx` was calling `/api/v1/notifications/*` relative URLs, which resolved to the frontend domain (Vercel) instead of the keeper (Railway). Created `frontend/src/lib/keeper.ts` with `KEEPER_BASE_URL` and `keeperUrl()` helper. Updated all fetch calls in `NotificationPreferences.tsx` to use full keeper URLs.
+- [x] **Fix heir allocation display**: `sync-vault/route.ts` was saving `allocation_value` as raw percentage (50 for 50%) instead of bps (5000 for 50%), causing the estimated value calculation in heir cards to show ~0 SOL. Fixed `sync-vault` to multiply percentage allocations by 100 (bps). Added backward-compatible helpers `formatAllocationPercent()` and `calculateHeirEstimate()` in vault detail page to handle both old (raw) and new (bps) data formats during transition.
+- [x] **Verify auto-notification preferences on vault creation**: Confirmed that `sync-vault/route.ts` already automatically creates `notification_preferences` for heirs using their email/phone from the creation form. This was already implemented but users couldn't verify due to the 404 bug.
+
 ---
 
 ## Active Problem / Blocker
 Nenhum blocker técnico. Build passando em todos os componentes.
 
-**Bloqueio para teste real**: Credenciais SendGrid/Twilio ainda não configuradas no `.env` do keeper. Usuário possui contas mas precisa inserir API keys para testar envio real.
+**Guia de configuração criado**: `docs/NOTIFICATION_SETUP.md` contém passo-a-passo completo para configurar credenciais SendGrid/Twilio no Railway e testar envio real.
+
+**Atenção**: A pasta `docs/` foi removida do git por conter informações sensíveis. O guia existe apenas localmente em `D:\Users\n4r1g4\Desktop\CRYPTO-HERANCA\docs\NOTIFICATION_SETUP.md`.
 
 ---
 
 ## What's Pending / Next Steps
 
 ### Sprint 8 — Testes End-to-End e Validação (ALTO) 🔄 PRÓXIMO PASSO
-- [ ] **Teste de notificações reais**: Configurar credenciais SendGrid/Twilio no keeper e testar envio de email/SMS
+- [x] **Guia de configuração de notificações**: Criado `docs/NOTIFICATION_SETUP.md` com instruções completas
+- [ ] **Teste de notificações reais**: Seguir o guia para configurar credenciais SendGrid/Twilio no Railway e testar envio real
 - [ ] **Teste E2E completo**: create → deposit → heartbeat → edit heir → delete heir → wait expiry → claim
 - [ ] **Teste de deleção**: Criar vault com 2 heirs (75%/25%), deletar um, verificar claim distribui 100% para o restante
 - [ ] **Teste de edição de wallet**: Editar wallet de heir, verificar claim manda para nova wallet
@@ -158,6 +167,17 @@ Nenhum blocker técnico. Build passando em todos os componentes.
 - `keeper/src/config.ts` — Variáveis de ambiente para notificações
 - `keeper/.env.example` — Template de variáveis SendGrid/Twilio
 - `keeper/package.json` — Dependências `@sendgrid/mail` e `twilio`
+
+### Bug Fixes (2026-05-05)
+- `frontend/src/lib/keeper.ts` — Configuração da URL base do keeper (novo)
+- `frontend/src/components/vault/NotificationPreferences.tsx` — Corrigido 404: todas as chamadas fetch agora usam `keeperUrl()`
+- `frontend/src/app/api/sync-vault/route.ts` — Corrigido `allocation_value` para salvar em bps (x100) para percentual
+- `frontend/src/app/vaults/[address]/page.tsx` — Adicionados helpers `formatAllocationPercent()` e `calculateHeirEstimate()` backward-compatible
+- `notification_preferences.is_verified` — Bug crítico descoberto: a coluna tem default `false`, e o keeper ignora preferências não verificadas (`!pref.is_verified → skip`). Todas as inserções agora setam `is_verified: true`. Registros existentes no banco já foram atualizados para `true`.
+
+### Documentação
+- `docs/NOTIFICATION_SETUP.md` — Guia completo de configuração de notificações (novo)
+- `docs/DEPLOY-GUIDE.md` — Atualizado com seção de notificações e referência ao novo guia
 
 ---
 

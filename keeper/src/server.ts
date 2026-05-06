@@ -12,7 +12,7 @@ export function createServer(): Application {
   app.use(helmet());
   app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 

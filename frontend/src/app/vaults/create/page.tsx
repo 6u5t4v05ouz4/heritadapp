@@ -21,6 +21,7 @@ import {
   Wallet,
   Mail,
   Phone,
+  Bell,
 } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import PageHeader from "@/components/layout/PageHeader";
@@ -55,6 +56,8 @@ export default function CreateVaultPage() {
   const [heirs, setHeirs] = useState<HeirInput[]>([
     { name: "", email: "", phone: "", wallet: "", asset: "11111111111111111111111111111111", allocationType: "percentage", allocationValue: "100" },
   ]);
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -201,6 +204,8 @@ export default function CreateVaultPage() {
             gasReserveLamports: Math.floor(Number(gasReserve) * LAMPORTS_PER_SOL),
             solBalance: 0,
             heirs: heirs,
+            ownerEmail: ownerEmail.trim() || undefined,
+            ownerPhone: ownerPhone.trim() || undefined,
           });
         } catch (syncErr: any) {
           console.warn("[CreateVault] Supabase sync failed:", syncErr.message);
@@ -404,6 +409,37 @@ export default function CreateVaultPage() {
               icon={<Fuel className="w-4 h-4" />}
               disabled
             />
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-border-subtle">
+            <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-accent-primary" />
+              Owner Notifications (optional)
+            </h3>
+            <p className="text-xs text-text-tertiary mb-4">
+              Get notified about heartbeats, deposits, and expiry warnings.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Your Email"
+                type="email"
+                placeholder="you@email.com"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                icon={<Mail className="w-4 h-4" />}
+              />
+              <Input
+                label="Your Phone"
+                type="tel"
+                placeholder="+1 555 123 4567"
+                value={ownerPhone}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^\d+\-()\s]/g, "");
+                  setOwnerPhone(val);
+                }}
+                icon={<Phone className="w-4 h-4" />}
+              />
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">
