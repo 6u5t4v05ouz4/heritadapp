@@ -167,6 +167,12 @@ pub mod crypto_heranca {
                         let heir = &heirs[*heir_idx];
                         let heir_account = heir_accounts[*heir_idx].clone();
                         
+                        // Validar que a conta fornecida corresponde ao wallet do herdeiro
+                        require!(
+                            heir_account.key() == heir.wallet,
+                            CryptoHerancaError::InvalidHeirAccount
+                        );
+                        
                         **vault.to_account_info().try_borrow_mut_lamports()? = vault
                             .to_account_info().lamports()
                             .checked_sub(*amount)
@@ -200,17 +206,9 @@ pub mod crypto_heranca {
             }
         }
 
-        // Close the vault — transfer ALL remaining lamports (including rent + gas_reserve)
-        // to the executor. The vault is no longer needed after claim.
-        let remaining = vault.to_account_info().lamports();
-        if remaining > 0 {
-            **vault.to_account_info().try_borrow_mut_lamports()? = 0;
-            **executor.to_account_info().try_borrow_mut_lamports()? = executor
-                .to_account_info().lamports()
-                .checked_add(remaining)
-                .ok_or(CryptoHerancaError::MathOverflow)?;
-        }
-
+        // O fechamento do vault é gerenciado automaticamente pela constraint `close = executor`
+        // do Anchor, que transfere os lamports restantes (rent + gas_reserve não utilizado)
+        // para o executor e marca a conta como fechada.
         vault.status = VaultStatus::Claimed;
 
         Ok(())
@@ -298,7 +296,7 @@ pub mod crypto_heranca {
     pub struct Claim<'info> {
         #[account(mut)]
         pub executor: Signer<'info>,
-        #[account(mut, seeds = [b"vault", vault.owner.as_ref(), vault.seed.to_le_bytes().as_ref()], bump = vault.bump, constraint = vault.is_active() @ CryptoHerancaError::VaultNotActive)]
+        #[account(mut, seeds = [b"vault", vault.owner.as_ref(), vault.seed.to_le_bytes().as_ref()], bump = vault.bump, constraint = vault.is_active() @ CryptoHerancaError::VaultNotActive, close = executor)]
         pub vault: Account<'info, Vault>,
         pub token_program: Program<'info, Token>,
         pub associated_token_program: Program<'info, AssociatedToken>,

@@ -104,6 +104,7 @@ pub fn handler(
     vault.created_at = clock.unix_timestamp;
     vault.bump = ctx.bumps.vault;
     vault.seed = seed;
+    vault.rent_exempt_min = Rent::get()?.minimum_balance(Vault::INIT_SPACE);
 
     Ok(())
 }

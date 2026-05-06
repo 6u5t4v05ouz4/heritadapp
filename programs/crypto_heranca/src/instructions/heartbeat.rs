@@ -13,22 +13,6 @@ use crate::events::HeartbeatReset;
 /// B) Keeper submete com proof assinado off-chain (Ed25519Program)
 /// ============================================================
 
-/// Header dos dados da instrução Ed25519Program
-/// Estrutura binária conforme Solana spec:
-/// https://docs.solana.com/developing/runtime-facilities/programs#ed25519-program
-#[repr(C)]
-struct Ed25519InstructionHeader {
-    num_signatures: u8,
-    padding: u8,
-    signature_offset: u16,
-    signature_instruction_index: u16,
-    public_key_offset: u16,
-    public_key_instruction_index: u16,
-    message_data_offset: u16,
-    message_data_size: u16,
-    message_instruction_index: u16,
-}
-
 /// Executa heartbeat — reseta o timer
 /// 
 /// # Segurança
@@ -150,27 +134,34 @@ fn verify_ed25519_via_sysvar(
 
     // Parse dos dados da instrução Ed25519Program
     let data = ed25519_instruction.data;
-    if data.len() < std::mem::size_of::<Ed25519InstructionHeader>() + 32 + 64 + expected_message.len() {
+    let header_size = 14; // 1 + 1 + 2*6 = 14 bytes
+    if data.len() < header_size + 32 + 64 + expected_message.len() {
         return Ok(false);
     }
 
-    // Ler header
-    let header = unsafe {
-        std::ptr::read_unaligned(data.as_ptr() as *const Ed25519InstructionHeader)
-    };
+    // Ler header manualmente (sem unsafe)
+    let num_signatures = data[0];
+    let _padding = data[1]; // padding byte, não utilizado
+    let signature_offset = u16::from_le_bytes([data[2], data[3]]);
+    let signature_instruction_index = u16::from_le_bytes([data[4], data[5]]);
+    let public_key_offset = u16::from_le_bytes([data[6], data[7]]);
+    let public_key_instruction_index = u16::from_le_bytes([data[8], data[9]]);
+    let message_data_offset = u16::from_le_bytes([data[10], data[11]]);
+    let message_data_size = u16::from_le_bytes([data[12], data[13]]);
+    let message_instruction_index = u16::from_le_bytes([data[14], data[15]]);
 
     // Validar header
-    if header.num_signatures != 1 {
+    if num_signatures != 1 {
         return Ok(false);
     }
 
     // Extrair public key, signature e message dos offsets
-    let pk_start = header.public_key_offset as usize;
+    let pk_start = public_key_offset as usize;
     let pk_end = pk_start + 32;
-    let sig_start = header.signature_offset as usize;
+    let sig_start = signature_offset as usize;
     let sig_end = sig_start + 64;
-    let msg_start = header.message_data_offset as usize;
-    let msg_end = msg_start + header.message_data_size as usize;
+    let msg_start = message_data_offset as usize;
+    let msg_end = msg_start + message_data_size as usize;
 
     if pk_end > data.len() || sig_end > data.len() || msg_end > data.len() {
         return Ok(false);
@@ -197,9 +188,9 @@ fn verify_ed25519_via_sysvar(
 
     // Verificar que os instruction_index apontam para a instrução correta (current)
     // ou 0xFFFF (mesma instrução)
-    let sig_ix_ok = header.signature_instruction_index == 0xFFFF || header.signature_instruction_index as usize == current_index;
-    let pk_ix_ok = header.public_key_instruction_index == 0xFFFF || header.public_key_instruction_index as usize == current_index;
-    let msg_ix_ok = header.message_instruction_index == 0xFFFF || header.message_instruction_index as usize == current_index;
+    let sig_ix_ok = signature_instruction_index == 0xFFFF || signature_instruction_index as usize == current_index;
+    let pk_ix_ok = public_key_instruction_index == 0xFFFF || public_key_instruction_index as usize == current_index;
+    let msg_ix_ok = message_instruction_index == 0xFFFF || message_instruction_index as usize == current_index;
 
     if !sig_ix_ok || !pk_ix_ok || !msg_ix_ok {
         return Ok(false);

@@ -70,4 +70,7 @@ pub enum CryptoHerancaError {
     
     #[msg("ATA creation failed")]
     ATACreationFailed,
+    
+    #[msg("Invalid heir account: provided account does not match the heir's wallet")]
+    InvalidHeirAccount,
 }

@@ -30,6 +30,8 @@ pub struct Vault {
     pub bump: u8,
     /// Seed usada na derivação (permite múltiplos vaults por owner)
     pub seed: u64,
+    /// Rent-exempt mínimo calculado no momento da criação
+    pub rent_exempt_min: u64,
 }
 
 impl Vault {
@@ -47,7 +49,8 @@ impl Vault {
         + 1                            // status: VaultStatus (enum com 3 variantes = 1 byte)
         + 8                            // created_at: i64
         + 1                            // bump: u8
-        + 8;                           // seed: u64
+        + 8                            // seed: u64
+        + 8;                           // rent_exempt_min: u64
 
     /// Verifica se o vault está ativo
     pub fn is_active(&self) -> bool {
@@ -71,10 +74,8 @@ impl Vault {
     /// Retorna o saldo de SOL disponível para distribuição
     /// Reserva rent-exempt mínimo + gas_reserve para evitar erros de rent
     pub fn available_sol(&self, vault_lamports: u64) -> u64 {
-        // Rent-exempt mínimo para a conta Vault (~0.0089 SOL para ~1KB)
-        // Usamos um valor fixo conservador já que Rent::get() requer contexto de runtime
-        let rent_exempt_min: u64 = 1_000_000; // ~0.001 SOL (conservador)
-        let reserved = std::cmp::max(self.gas_reserve_lamports, rent_exempt_min);
+        // Usa o rent-exempt calculado no momento da criação do vault
+        let reserved = std::cmp::max(self.gas_reserve_lamports, self.rent_exempt_min);
         vault_lamports.saturating_sub(reserved)
     }
 }

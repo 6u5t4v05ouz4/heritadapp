@@ -28,5 +28,9 @@ digest = "=0.10.7"
 block-buffer = "=0.10.4"
 crypto-common = "=0.1.6"
 
+[dev-dependencies]
+# LiteSVM integration tests require compiled .so (see tests/crypto_heranca_tests.rs)
+# solana-program = "2.2"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
