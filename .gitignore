@@ -52,12 +52,15 @@ venv_pdf/
 venv/
 .venv/
 
-# md files
+# md files - ignore ALL markdown except README
 *.md
-!/SESSION_STATE.md
+!README.md
 
 # docs folder (sensitive deploy guides)
 docs/
+
+# session state (local only)
+SESSION_STATE.md
 
 # superpowered
 .docs
