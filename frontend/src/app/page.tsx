@@ -4,20 +4,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Shield, Clock, Users, Coins, ArrowRight, Mail } from "lucide-react";
+import { Shield, Clock, Users, ArrowRight, Mail } from "lucide-react";
 import ClientOnly from "@/components/ClientOnly";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import HeroBackground from "@/components/hero/HeroBackground";
+import VaultIrisOverlay from "@/components/hero/VaultIrisOverlay";
 
 export default function Home() {
   const { publicKey, connected } = useWallet();
 
   return (
     <div className="flex flex-col">
+      {/* Global Background */}
+      <HeroBackground />
+
+      {/* Vault Iris Overlay - Cofre Cibernético */}
+      <VaultIrisOverlay />
+
       {/* Hero */}
-      <section className="relative overflow-hidden bg-bg-base py-20 md:py-32">
-        <div className="absolute top-0 inset-x-0 h-[500px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/10 via-bg-base to-bg-base opacity-60 pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-4 md:px-6 flex flex-col items-center text-center">
+      <section className="relative overflow-hidden py-20 md:py-32">
+        {/* Top radial glow for depth */}
+        <div className="absolute top-0 inset-x-0 h-[500px] z-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-accent-primary/[0.07] via-bg-base/50 to-bg-base/80 opacity-60 pointer-events-none" />
+
+        <div className="relative z-30 max-w-5xl mx-auto px-4 md:px-6 flex flex-col items-center text-center">
           <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] font-playfair font-bold text-text-primary tracking-tight leading-[1.05] mb-8">
             Your legacy.
             <br />
@@ -79,7 +89,7 @@ export default function Home() {
       </section>
 
       {/* The Protocol */}
-      <section id="protocol" className="py-20 md:py-32 bg-bg-base">
+      <section id="protocol" className="relative z-20 py-20 md:py-32">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="text-center mb-24">
             <h2 className="text-5xl md:text-6xl lg:text-7xl font-playfair font-bold text-text-primary tracking-[0.1em] uppercase mb-8">
@@ -136,7 +146,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 border-t border-border-subtle/40 bg-bg-base">
+      <section className="relative z-20 py-16 md:py-24 border-t border-border-subtle/40">
         <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-playfair font-bold text-text-primary tracking-wide mb-4">
             Ready to protect your legacy?
@@ -172,7 +182,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border-subtle/40 bg-bg-base py-16">
+      <footer className="relative z-30 border-t border-border-subtle/40 bg-bg-base py-16">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-10">
           
           {/* Brand & Socials */}
