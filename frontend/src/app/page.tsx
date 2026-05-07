@@ -227,6 +227,10 @@ export default function Home() {
               <Link href="/privacy" className="text-xs font-semibold tracking-widest text-text-secondary hover:text-accent-primary uppercase transition-colors">
                 Privacy Policy
               </Link>
+              <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-border-subtle" />
+              <Link href="/terms" className="text-xs font-semibold tracking-widest text-text-secondary hover:text-accent-primary uppercase transition-colors">
+                Terms of Service
+              </Link>
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-xs text-text-tertiary flex items-center justify-center md:justify-end gap-2">
