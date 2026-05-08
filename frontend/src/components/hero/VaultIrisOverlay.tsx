@@ -49,9 +49,10 @@ export default function VaultIrisOverlay() {
 
       {/* Anel central que expande - alinhado com HERITA */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 rounded-full border border-accent-primary/30"
+        className="absolute left-1/2 rounded-full border border-accent-primary/30"
         style={{
-          top: "32%",
+          top: "38%",
+          transform: `translate(-50%, -50%)`,
           width: `${120 + progress * 400}px`,
           height: `${120 + progress * 400}px`,
           opacity: 0.3 + (progress * 0.3),
@@ -72,17 +73,17 @@ export default function VaultIrisOverlay() {
             key={i}
             className="absolute left-1/2"
             style={{
-              top: "32%",
+              top: "38%",
               width: "240px",
               height: "400px",
               opacity: petalOpacity,
               transform: `
-                translate(-50%, -50%)
+                translateX(-50%)
                 rotate(${angle}deg)
                 translateY(${-openDistance}px)
                 scale(${scale})
               `,
-              transformOrigin: "center bottom",
+              transformOrigin: "center top",
               transition: "none",
             }}
           >
@@ -104,11 +105,12 @@ export default function VaultIrisOverlay() {
         );
       })}
 
-      {/* Texto HERITA - posicionado mais acima */}
+      {/* Texto HERITA - centralizado com iris */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 text-center"
+        className="absolute left-1/2 text-center"
         style={{
-          top: "32%",
+          top: "38%",
+          transform: `translate(-50%, -50%)`,
           opacity: textOpacity,
           filter: `blur(${textBlur}px)`,
           transition: "none",
