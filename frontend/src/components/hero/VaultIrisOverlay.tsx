@@ -47,11 +47,11 @@ export default function VaultIrisOverlay() {
         }}
       />
 
-      {/* Anel central que expande - posicionado mais acima */}
+      {/* Anel central que expande - alinhado com HERITA */}
       <div
         className="absolute left-1/2 -translate-x-1/2 rounded-full border border-accent-primary/30"
         style={{
-          top: "35%",
+          top: "32%",
           width: `${120 + progress * 400}px`,
           height: `${120 + progress * 400}px`,
           opacity: 0.3 + (progress * 0.3),
@@ -72,7 +72,7 @@ export default function VaultIrisOverlay() {
             key={i}
             className="absolute left-1/2"
             style={{
-              top: "35%",
+              top: "32%",
               width: "240px",
               height: "400px",
               opacity: petalOpacity,
@@ -143,23 +143,27 @@ export default function VaultIrisOverlay() {
         </p>
       </div>
 
-      {/* Partículas douradas sutilíssimas */}
-      {Array.from({ length: 12 }).map((_, i) => (
-        <div
-          key={`particle-${i}`}
-          className="absolute rounded-full bg-accent-primary"
-          style={{
-            width: `${2 + Math.random() * 3}px`,
-            height: `${2 + Math.random() * 3}px`,
-            left: `${10 + (i * 7.5)}%`,
-            top: `${20 + (i % 4) * 20}%`,
-            opacity: 0.3 * (1 - progress) * Math.random(),
-            filter: `blur(1px)`,
-            animation: `float-particle ${8 + Math.random() * 8}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 5}s`,
-          }}
-        />
-      ))}
+      {/* Partículas douradas sutilíssimas - valores determinísticos */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        // Valores seedeados pelo índice para evitar hydration mismatch
+        const seed = (n: number) => ((i * 9301 + 49297) % 233280) / 233280 * n;
+        return (
+          <div
+            key={`particle-${i}`}
+            className="absolute rounded-full bg-accent-primary"
+            style={{
+              width: `${2 + seed(3)}px`,
+              height: `${2 + seed(3)}px`,
+              left: `${10 + (i * 7.5)}%`,
+              top: `${20 + (i % 4) * 20}%`,
+              opacity: 0.3 * (1 - progress) * (0.3 + seed(0.7)),
+              filter: `blur(1px)`,
+              animation: `float-particle ${8 + seed(8)}s ease-in-out infinite`,
+              animationDelay: `${seed(5)}s`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
