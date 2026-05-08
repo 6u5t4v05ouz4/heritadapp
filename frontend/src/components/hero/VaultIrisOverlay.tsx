@@ -117,7 +117,7 @@ export default function VaultIrisOverlay() {
         }}
       >
         <h1
-          className="font-playfair font-bold text-accent-primary tracking-[0.3em] uppercase"
+          className="font-playfair font-bold text-accent-primary tracking-[0.3em] uppercase ml-[0.3em]"
           style={{
             fontSize: "clamp(2.5rem, 10vw, 6rem)",
             textShadow: progress > 0.7
@@ -135,7 +135,7 @@ export default function VaultIrisOverlay() {
           HERITA
         </h1>
         <p
-          className="mt-4 text-text-secondary text-sm tracking-[0.2em] uppercase font-sans"
+          className="mt-4 text-text-secondary text-sm tracking-[0.2em] uppercase font-sans ml-[0.2em]"
           style={{
             opacity: textOpacity * 0.8,
             filter: `blur(${textBlur * 0.5}px)`,
