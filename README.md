@@ -17,7 +17,7 @@ Herita allows users to create a secure inheritance vault where they can:
 
 - Deposit SOL or supported tokens
 - Choose one or multiple beneficiaries (up to 10)
-- Define inactivity periods (test: 60s | mainnet: 30 days)
+- Define inactivity periods
 - Keep full ownership while active
 - Enable automatic distribution if prolonged inactivity occurs
 - Receive email/SMS notifications for critical events
@@ -26,28 +26,9 @@ Herita allows users to create a secure inheritance vault where they can:
 
 Herita consists of 3 integrated layers:
 
-```
-┌─────────────────────────────────────────┐
-│           FRONTEND (Next.js)            │
-│   React 19 • Tailwind CSS v4 • Wallet   │
-│   https://herita.xyz                    │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│           KEEPER (Node.js)              │
-│   Express • Cron • Ed25519 Heartbeat    │
-│   Resend Email • Twilio SMS • Claims    │
-│   https://crypto-heranca-keeper...      │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│     SMART CONTRACT (Anchor 0.32.1)      │
-│   Rust • Solana Devnet • Program ID     │
-│   8rQWCAFD9GhyTmQ73Y4LkSt7VzxFh...     │
-└─────────────────────────────────────────┘
-```
+- **Smart Contract** (Anchor 0.32.1 + Rust) — On-chain vault logic, heir management, and automated distribution
+- **Frontend** (Next.js 16 + React 19 + Tailwind CSS v4) — User interface for vault creation, management, and heir dashboard
+- **Keeper** (Node.js + Express) — Off-chain service that monitors vaults, processes heartbeats, executes claims, and sends notifications
 
 ## Core Features
 
@@ -60,10 +41,10 @@ Herita consists of 3 integrated layers:
 - **Claim** — Automatic distribution to heirs after inactivity period expires (anyone can execute, keeper receives gas reimbursement + fee)
 
 ### Frontend
-- **Gold Premium Dark Theme** — Unified visual identity with glass effects, semantic tokens, and dourado accents
+- **Gold Premium Dark Theme** — Unified visual identity with glass effects and semantic tokens
 - **Wallet Connection** — Phantom, Solflare via Solana Wallet Adapter
 - **Vault Management** — Create, monitor, deposit, heartbeat, and cancel vaults
-- **Heir Dashboard** — Dedicated `/heir` page for beneficiaries with live polling (15s auto-refresh)
+- **Heir Dashboard** — Dedicated page for beneficiaries with live polling
 - **Notification Preferences** — Register email/phone for heartbeat, deposit, expiry, and claim alerts
 - **Explorer Integration** — Direct links to Solana Explorer/Solscan for all transactions
 
@@ -71,14 +52,7 @@ Herita consists of 3 integrated layers:
 - **On-Chain Sync** — Automatically sync vaults, heirs, and assets to Supabase
 - **Heartbeat Processing** — Validate and submit Mode B heartbeats with Ed25519Program verification
 - **Claim Execution** — Monitor expired vaults and execute claims automatically
-- **Notifications** — Email (Resend) + SMS (Twilio) with 6 templates:
-  - `heartbeat_received` — Owner alerted on heartbeat
-  - `deposit_received` — Owner + heirs alerted on deposits > 0.001 SOL
-  - `expiry_warning` — Heirs alerted when timer < 25%
-  - `claim_executed` — Owner notified after claim
-  - `heir_alert` — Custom alerts for heirs
-  - `cancel` — Cancellation confirmation
-- **Deduplication** — 24-hour cooldown per template to prevent spam
+- **Notifications** — Email (Resend) + SMS (Twilio) with 6 templates and 24h deduplication cooldown
 - **API Endpoints** — RESTful API with rate limiting, CORS, and health checks
 
 ## Tech Stack
@@ -94,33 +68,6 @@ Herita consists of 3 integrated layers:
 | Notifications | Resend (Email), Twilio (SMS) |
 | Testing | Anchor TS, LiteSVM (Rust), Jest (Keeper) |
 
-## Project Structure
-
-```
-crypto-heranca/
-├── programs/crypto_heranca/     # Anchor smart contract
-│   ├── src/
-│   │   ├── lib.rs               # Program entrypoint + claim logic
-│   │   ├── state/vault.rs       # Vault, Heir, VaultStatus, AllocationType
-│   │   ├── errors.rs            # 18 custom error codes
-│   │   ├── events.rs            # VaultCreated, Deposit, HeartbeatReset, etc.
-│   │   └── instructions/        # All 8 instruction handlers
-│   └── tests/                   # LiteSVM Rust tests
-├── frontend/                     # Next.js frontend
-│   ├── src/app/                 # Pages (/, /vaults, /heir, /terms, /privacy)
-│   ├── src/components/          # UI components, layout, vault-specific
-│   ├── src/hooks/               # useVault, useEnhancedToast
-│   └── src/lib/                 # Anchor, Supabase, Explorer, Keeper helpers
-├── keeper/                       # Node.js keeper service
-│   ├── src/services/            # Heartbeat, Claim, Vault Monitor, Notifications
-│   ├── src/routes/api.ts        # REST API routes
-│   └── tests/                   # Jest tests
-├── tests/crypto_heranca.ts      # Anchor TypeScript tests (10 tests)
-├── Anchor.toml                   # Anchor config (devnet)
-├── security-checklist.md         # Pre-mainnet security checklist
-└── WSL_BUILD_GUIDE.md           # Build instructions for WSL
-```
-
 ## Deployed URLs
 
 | Service | URL |
@@ -130,108 +77,17 @@ crypto-heranca/
 | Supabase | https://naotxbbzuexiaiwbmikr.supabase.co |
 | Solana Devnet | https://explorer.solana.com/address/8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX?cluster=devnet |
 
-## Local Development
-
-### Prerequisites
-- Node.js >= 20
-- Rust + Cargo
-- Solana CLI
-- Anchor CLI 0.32.1
-
-### 1. Clone and Install
-
-```bash
-git clone https://github.com/6u5t4v05ouz4/heritadapp.git
-cd heritadapp
-
-# Install root dependencies
-npm install
-
-# Install frontend dependencies
-cd frontend && npm install
-
-# Install keeper dependencies
-cd ../keeper && npm install
-```
-
-### 2. Smart Contract (WSL recommended for Windows)
-
-```bash
-# Copy to WSL (Windows)
-wsl mkdir -p ~/crypto-heranca
-cp -r /mnt/d/Users/n4r1g4/Desktop/CRYPTO-HERANCA/* ~/crypto-heranca/
-cd ~/crypto-heranca
-
-# Build
-anchor build
-
-# Test
-anchor test
-
-# Deploy to devnet
-solana config set --url devnet
-solana airdrop 2
-anchor deploy
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-
-# Copy IDL from Anchor build
-cp ../target/idl/crypto_heranca.json src/lib/idl/
-
-# Create .env.local
-echo "NEXT_PUBLIC_SUPABASE_URL=your_supabase_url" > .env.local
-echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key" >> .env.local
-echo "NEXT_PUBLIC_KEEPER_URL=http://localhost:3001" >> .env.local
-
-# Run dev server
-npm run dev
-```
-
-### 4. Keeper
-
-```bash
-cd keeper
-
-# Create .env
-cp .env.example .env
-# Edit .env with your keys (Solana, Supabase service role, Resend, Twilio)
-
-# Build and run
-npm run build
-npm start
-
-# Or dev mode with hot reload
-npm run watch
-```
-
-## Testing
-
-```bash
-# Anchor TypeScript tests (all 10 pass)
-anchor test
-
-# Keeper tests
-npm run test --workspace=keeper
-
-# Frontend build check
-cd frontend && npm run build
-```
-
 ## Security
 
-This project follows the [Safe Solana Builder](https://github.com/6u5t4v05ouz4/heritadapp/security-checklist.md) guidelines by Frank Castle:
+This project follows the Safe Solana Builder guidelines:
 
-- ✅ Signer & ownership checks on all privileged instructions
-- ✅ PDA validation with canonical bumps and seed isolation
-- ✅ Checked math on all financial operations
-- ✅ Ed25519 signature verification via instruction sysvar
-- ✅ No admin keys or upgrade authority (immutable program)
-- ✅ Duplicate heir prevention
-- ✅ Status lifecycle tracking (Active → Claimed/Cancelled)
+- Signer & ownership checks on all privileged instructions
+- PDA validation with canonical bumps and seed isolation
+- Checked math on all financial operations
+- Ed25519 signature verification via instruction sysvar
+- No admin keys or upgrade authority (immutable program)
+- Duplicate heir prevention
+- Status lifecycle tracking (Active → Claimed/Cancelled)
 
 See `security-checklist.md` for the full pre-mainnet checklist.
 
