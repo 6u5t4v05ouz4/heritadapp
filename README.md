@@ -22,6 +22,12 @@ Herita allows users to create a secure inheritance vault where they can:
 - Enable automatic distribution if prolonged inactivity occurs
 - Receive email/SMS notifications for critical events
 
+## Demo
+
+[![Herita Demo](https://herita.xyz/demo-thumbnail.jpg)](https://github.com/6u5t4v05ouz4/heritadapp/releases/download/demo-v1/herita-presentation.mp4)
+
+Clique na imagem acima para assistir ao vídeo de demonstração do protocolo Herita.
+
 ## Architecture
 
 Herita consists of 3 integrated layers:
