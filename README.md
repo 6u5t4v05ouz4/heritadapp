@@ -27,7 +27,7 @@ Herita allows users to create a secure inheritance vault where they can:
 
 ## Demo
 
-https://github.com/user-attachments/assets/ee3897d5-d0d7-478f-9555-6fbf33e77d8d
+https://github.com/user-attachments/assets/876dea7d-2896-4985-98bc-aafae92d76ca
 
 ## Architecture
 
