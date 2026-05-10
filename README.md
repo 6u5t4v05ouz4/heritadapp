@@ -107,7 +107,7 @@ See `security-checklist.md` for the full pre-mainnet checklist.
 - [x] Email + SMS notifications
 - [x] Gold premium UI theme
 - [x] Heir dashboard with live polling
-- [ ] End-to-end testing with real notifications
+- [x] End-to-end testing with real notifications
 - [ ] SPL token claim distribution
 - [ ] Mainnet audit (OtterSec/Trail of Bits)
 - [ ] Mainnet deployment
