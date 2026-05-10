@@ -1,8 +1,4 @@
 # HERITA
-
-### VIDEO DEMO
-https://github.com/6u5t4v05ouz4/heritadapp/issues/4#issue-4416796442/herita-demo.mp4
-
 ### Protecting Generations with Solana
 
 Herita is an on-chain inheritance protocol built on Solana that ensures digital assets are passed on to the right people if something unexpected happens.
