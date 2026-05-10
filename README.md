@@ -96,7 +96,7 @@ See `security-checklist.md` for the full pre-mainnet checklist.
 
 ## Known Limitations
 
-1. **Inactivity Period:** Currently 60 seconds for devnet testing. Will be 30 days before mainnet.
+1. **Minimum Inactivity Period:** Currently 60 seconds for devnet testing. Will be 30 days before mainnet.
 2. **SPL Token Claims:** Claim instruction currently distributes SOL only. SPL token distribution requires remaining accounts with heir ATAs.
 3. **Token-2022:** Not yet validated for Token-2022 extensions.
 
