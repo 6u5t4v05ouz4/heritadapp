@@ -712,7 +712,7 @@ export default function VaultDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-text-tertiary">Inactivity</span>
-              <span className="text-text-primary font-medium">{inactivityPeriod} min</span>
+              <span className="text-text-primary font-medium">{Math.round(inactivityPeriod / 60)} min</span>
             </div>
           </div>
         </Card>
