@@ -25,12 +25,6 @@ export async function syncVaults(): Promise<{
   const vaults = await fetchAllVaults();
   console.log(`[Monitor] Found ${vaults.length} vaults on-chain`);
   
-  if (vaults.length > 0) {
-    vaults.forEach(({ pubkey, account }) => {
-      console.log(`[Monitor] Vault ${pubkey.toBase58()}: owner=${account.owner.toBase58()}, heirs=${account.heirs.length}`);
-    });
-  }
-  
   let synced = 0;
   let errors = 0;
 
@@ -65,9 +59,9 @@ export async function upsertVault(
   // Fetch existing vault to detect changes
   const { data: existingVault } = await supabase
     .from('vaults')
-    .select('id, last_heartbeat, sol_balance')
+    .select('id, seed, inactivity_period, last_heartbeat, keeper_fee_bps, gas_reserve_lamports, sol_balance, status')
     .eq('vault_address', vaultAddress)
-    .single();
+    .maybeSingle();
 
   const existingHeartbeat = existingVault
     ? Math.floor(new Date(existingVault.last_heartbeat).getTime() / 1000)
@@ -75,29 +69,44 @@ export async function upsertVault(
   const existingBalance = existingVault ? (existingVault.sol_balance || 0) : 0;
   const vaultId = existingVault?.id;
 
-  // Upsert vault
-  const { data: vaultData, error: vaultError } = await supabase
-    .from('vaults')
-    .upsert(
-      {
-        vault_address: vaultAddress,
-        owner_address: ownerAddress,
-        seed: account.seed.toString(),
-        inactivity_period: inactivityPeriod,
-        last_heartbeat: new Date(lastHeartbeatTs * 1000).toISOString(),
-        keeper_fee_bps: account.keeperFeeBps,
-        gas_reserve_lamports: account.gasReserveLamports.toNumber(),
-        status,
-        created_at: new Date(account.createdAt.toNumber() * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        sol_balance: solBalance,
-      },
-      { onConflict: 'vault_address' }
-    )
-    .select()
-    .single();
+  const vaultPayload = {
+    vault_address: vaultAddress,
+    owner_address: ownerAddress,
+    seed: account.seed.toString(),
+    inactivity_period: inactivityPeriod,
+    last_heartbeat: new Date(lastHeartbeatTs * 1000).toISOString(),
+    keeper_fee_bps: account.keeperFeeBps,
+    gas_reserve_lamports: account.gasReserveLamports.toNumber(),
+    status,
+    created_at: new Date(account.createdAt.toNumber() * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+    sol_balance: solBalance,
+  };
 
-  if (vaultError) throw vaultError;
+  const vaultChanged = !existingVault
+    || String(existingVault.seed) !== vaultPayload.seed
+    || Number(existingVault.inactivity_period) !== vaultPayload.inactivity_period
+    || Math.floor(new Date(existingVault.last_heartbeat).getTime() / 1000) !== lastHeartbeatTs
+    || Number(existingVault.keeper_fee_bps) !== vaultPayload.keeper_fee_bps
+    || Number(existingVault.gas_reserve_lamports) !== vaultPayload.gas_reserve_lamports
+    || Number(existingVault.sol_balance || 0) !== vaultPayload.sol_balance
+    || existingVault.status !== vaultPayload.status;
+
+  let vaultData = existingVault;
+  if (vaultChanged) {
+    const { data, error: vaultError } = await supabase
+      .from('vaults')
+      .upsert(vaultPayload, { onConflict: 'vault_address' })
+      .select()
+      .single();
+
+    if (vaultError) throw vaultError;
+    vaultData = data;
+  }
+
+  if (!vaultData?.id) {
+    throw new Error(`Vault upsert did not return an id for ${vaultAddress}`);
+  }
 
   // Sync heirs
   await syncHeirs(vaultData.id, account.heirs);
@@ -183,10 +192,7 @@ async function syncHeirs(
   vaultId: string,
   heirs: VaultAccount['heirs']
 ): Promise<void> {
-  console.log(`[syncHeirs] Syncing ${heirs.length} heirs for vault ${vaultId}`);
-  
   if (heirs.length === 0) {
-    console.log(`[syncHeirs] No heirs on-chain, deleting all from Supabase`);
     await supabase.from('heirs').delete().eq('vault_id', vaultId);
     return;
   }
@@ -232,17 +238,22 @@ async function syncHeirs(
     };
 
     if (existing) {
-      // Update existing heir
-      const { error } = await supabase
-        .from('heirs')
-        .update(heirData)
-        .eq('id', existing.id);
-      
-      if (error) {
-        console.error(`[syncHeirs] Update error for ${walletAddress}:`, error.message);
-        // If updated_at column is missing, try update ignoring the trigger error
-        if (error.message?.includes('updated_at')) {
-          console.warn(`[syncHeirs] Trigger error for ${walletAddress}, skipping updated_at`);
+      const changed = existing.asset_mint !== heirData.asset_mint
+        || existing.allocation_type !== heirData.allocation_type
+        || Number(existing.allocation_value) !== heirData.allocation_value
+        || (existing.name || null) !== heirData.name;
+
+      if (changed) {
+        const { error } = await supabase
+          .from('heirs')
+          .update(heirData)
+          .eq('id', existing.id);
+
+        if (error) {
+          console.error(`[syncHeirs] Update error for ${walletAddress}:`, error.message);
+          if (error.message?.includes('updated_at')) {
+            console.warn(`[syncHeirs] Trigger error for ${walletAddress}, skipping updated_at`);
+          }
         }
       }
     } else {
@@ -275,8 +286,22 @@ async function syncAssets(
   vaultPubkey: PublicKey,
   assets: PublicKey[]
 ): Promise<void> {
-  // Delete existing assets and re-insert
-  await supabase.from('vault_assets').delete().eq('vault_id', vaultId);
+  const { data: existingAssets } = await supabase
+    .from('vault_assets')
+    .select('id, mint_address, balance')
+    .eq('vault_id', vaultId);
+
+  const existingMap = new Map((existingAssets || []).map((asset: any) => [asset.mint_address, asset]));
+  const onChainMints = new Set(assets.map((mint) => mint.toBase58()));
+  const toDelete = (existingAssets || []).filter((asset: any) => !onChainMints.has(asset.mint_address));
+
+  if (toDelete.length > 0) {
+    await supabase
+      .from('vault_assets')
+      .delete()
+      .eq('vault_id', vaultId)
+      .in('mint_address', toDelete.map((asset: any) => asset.mint_address));
+  }
 
   if (assets.length === 0) return;
 
@@ -291,7 +316,16 @@ async function syncAssets(
     })
   );
 
-  const { error } = await supabase.from('vault_assets').insert(assetRows);
+  const changedRows = assetRows.filter((row) => {
+    const existing = existingMap.get(row.mint_address) as any;
+    return !existing || Number(existing.balance) !== row.balance;
+  });
+
+  if (changedRows.length === 0) return;
+
+  const { error } = await supabase
+    .from('vault_assets')
+    .upsert(changedRows, { onConflict: 'vault_id,mint_address' });
   if (error) throw error;
 }
 
@@ -301,11 +335,27 @@ async function syncAssets(
 export async function findExpiredVaults(): Promise<
   { pubkey: PublicKey; account: VaultAccount }[]
 > {
-  const vaults = await fetchAllVaults();
-  return vaults.filter(({ account }) => {
-    const status = getVaultStatus(account);
-    return status === 'active' && isVaultExpired(account);
-  });
+  const { data, error } = await supabase
+    .from('vaults')
+    .select('vault_address')
+    .eq('status', 'active')
+    .lte('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: true })
+    .limit(100);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return [];
+
+  const expired: { pubkey: PublicKey; account: VaultAccount }[] = [];
+  for (const row of data) {
+    const pubkey = new PublicKey(row.vault_address);
+    const account = await fetchVault(pubkey);
+    if (account && getVaultStatus(account) === 'active' && isVaultExpired(account)) {
+      expired.push({ pubkey, account });
+    }
+  }
+
+  return expired;
 }
 
 // ============================================================

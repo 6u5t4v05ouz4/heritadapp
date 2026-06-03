@@ -43,6 +43,8 @@ const program = new Program(idl as any, provider);
 
 export { connection, keeperKeypair, program, provider };
 
+const isDebug = config.LOG_LEVEL === 'debug';
+
 // ============================================================
 // Vault Types (from IDL)
 // ============================================================
@@ -88,8 +90,10 @@ export async function fetchAllVaults(): Promise<
   { pubkey: PublicKey; account: VaultAccount }[]
 > {
   try {
-    console.log('[Solana] Fetching all vaults from program:', config.PROGRAM_ID_PUBKEY.toBase58());
-    console.log('[Solana] Using RPC:', config.SOLANA_RPC_URL);
+    if (isDebug) {
+      console.log('[Solana] Fetching all vaults from program:', config.PROGRAM_ID_PUBKEY.toBase58());
+      console.log('[Solana] Using RPC:', config.SOLANA_RPC_URL);
+    }
     
     // Use getProgramAccounts directly (more reliable than Anchor's .all())
     // Filter by vault discriminator to avoid accounts from other program versions
@@ -104,22 +108,25 @@ export async function fetchAllVaults(): Promise<
       }
     );
     
-    console.log(`[Solana] Found ${accounts.length} raw accounts via getProgramAccounts`);
+    console.log(`[Solana] Found ${accounts.length} vault accounts`);
     
     // Decode each account using Anchor
     const results: { pubkey: PublicKey; account: VaultAccount }[] = [];
     for (const { pubkey, account } of accounts) {
       try {
-        console.log(`[Solana] Decoding account ${pubkey.toBase58()}, size: ${account.data.length}`);
-        const decoded = await (program.account as any).vault.fetch(pubkey);
+        if (isDebug) {
+          console.log(`[Solana] Decoding account ${pubkey.toBase58()}, size: ${account.data.length}`);
+        }
+        const decoded = (program as any).coder.accounts.decode('Vault', account.data);
         results.push({ pubkey, account: decoded as VaultAccount });
       } catch (decodeErr: any) {
         console.error(`[Solana] Failed to decode vault ${pubkey.toBase58()}:`, decodeErr.message);
-        // Try to show first 8 bytes for debugging
-        const data = account.data;
-        const first8 = Array.from(data.slice(0, 8));
-        console.error(`[Solana] First 8 bytes: [${first8.join(', ')}]`);
-        console.error(`[Solana] Expected discriminator from IDL: [211, 8, 232, 43, 2, 152, 117, 119]`);
+        if (isDebug) {
+          const data = account.data;
+          const first8 = Array.from(data.slice(0, 8));
+          console.error(`[Solana] First 8 bytes: [${first8.join(', ')}]`);
+          console.error(`[Solana] Expected discriminator from IDL: [211, 8, 232, 43, 2, 152, 117, 119]`);
+        }
       }
     }
     

@@ -41,21 +41,37 @@ async function main() {
   console.log('[Startup] Scheduling cron jobs...');
 
   // Vault sync job (every N minutes)
+  let syncRunning = false;
   const syncInterval = `*/${config.MONITOR_INTERVAL_MINUTES} * * * *`;
   cron.schedule(syncInterval, async () => {
+    if (syncRunning) {
+      console.warn('[Cron] Previous vault sync still running, skipping this tick.');
+      return;
+    }
+
     console.log('[Cron] Running vault sync...');
+    syncRunning = true;
     try {
       await syncVaults();
     } catch (err) {
       console.error('[Cron] Sync error:', err);
+    } finally {
+      syncRunning = false;
     }
   });
   console.log(`[Cron] Vault sync scheduled: every ${config.MONITOR_INTERVAL_MINUTES} minutes`);
 
   // Claim execution job (every N minutes)
+  let claimRunning = false;
   const claimInterval = `*/${config.CLAIM_CHECK_INTERVAL_MINUTES} * * * *`;
   cron.schedule(claimInterval, async () => {
+    if (claimRunning) {
+      console.warn('[Cron] Previous claim check still running, skipping this tick.');
+      return;
+    }
+
     console.log('[Cron] Checking for expired vaults...');
+    claimRunning = true;
     try {
       const expired = await findExpiredVaults();
       if (expired.length > 0) {
@@ -66,6 +82,8 @@ async function main() {
       }
     } catch (err) {
       console.error('[Cron] Claim check error:', err);
+    } finally {
+      claimRunning = false;
     }
   });
   console.log(`[Cron] Claim check scheduled: every ${config.CLAIM_CHECK_INTERVAL_MINUTES} minutes`);

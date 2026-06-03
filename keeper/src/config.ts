@@ -11,8 +11,8 @@ const configSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   API_PORT: z.string().transform(Number).default('3000'),
   API_RATE_LIMIT_PER_MINUTE: z.string().transform(Number).default('100'),
-  MONITOR_INTERVAL_MINUTES: z.string().transform(Number).default('5'),
-  CLAIM_CHECK_INTERVAL_MINUTES: z.string().transform(Number).default('5'),
+  MONITOR_INTERVAL_MINUTES: z.string().transform(Number).default('30'),
+  CLAIM_CHECK_INTERVAL_MINUTES: z.string().transform(Number).default('15'),
   PROGRAM_ID: z.string().default('8rQWCAFD9GhyTmQ73Y4LkSt7VzxFhKgWwPC2kBHuPVyX'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   
