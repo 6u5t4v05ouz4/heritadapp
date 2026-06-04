@@ -7,6 +7,7 @@ import apiRoutes from './routes/api';
 
 export function createServer(): Application {
   const app = express();
+  app.set('trust proxy', 1);
   // CORS must be before helmet so preflight OPTIONS responses include correct headers
   app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
