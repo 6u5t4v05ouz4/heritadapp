@@ -142,13 +142,16 @@ export async function fetchAllVaults(): Promise<
 // Fetch single vault
 // ============================================================
 export async function fetchVault(
-  vaultAddress: PublicKey
+  vaultAddress: PublicKey,
+  logError: boolean = true
 ): Promise<VaultAccount | null> {
   try {
     const account = await (program.account as any).vault.fetch(vaultAddress);
     return account as VaultAccount;
   } catch (err) {
-    console.error(`Error fetching vault ${vaultAddress.toBase58()}:`, err);
+    if (logError) {
+      console.error(`Error fetching vault ${vaultAddress.toBase58()}:`, err);
+    }
     return null;
   }
 }

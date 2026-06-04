@@ -38,6 +38,24 @@ export async function syncVaults(): Promise<{
     }
   }
 
+  const onChainAddresses = new Set(vaults.map(v => v.pubkey.toBase58()));
+  const { data: dbVaults } = await supabase
+    .from('vaults')
+    .select('vault_address')
+    .eq('status', 'active');
+
+  if (dbVaults) {
+    const orphans = dbVaults.filter((row: any) => !onChainAddresses.has(row.vault_address));
+    if (orphans.length > 0) {
+      const addresses = orphans.map((row: any) => row.vault_address);
+      await supabase
+        .from('vaults')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .in('vault_address', addresses);
+      console.log(`[Monitor] Cleaned up ${orphans.length} orphan vaults (not found on-chain)`);
+    }
+  }
+
   console.log(`[Monitor] Sync complete: ${synced} synced, ${errors} errors`);
   return { synced, errors };
 }
@@ -349,8 +367,12 @@ export async function findExpiredVaults(): Promise<
   const expired: { pubkey: PublicKey; account: VaultAccount }[] = [];
   for (const row of data) {
     const pubkey = new PublicKey(row.vault_address);
-    const account = await fetchVault(pubkey);
-    if (account && getVaultStatus(account) === 'active' && isVaultExpired(account)) {
+    const account = await fetchVault(pubkey, false);
+    if (!account) {
+      supabase.from('vaults').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('vault_address', row.vault_address).then(() => {}, () => {});
+      continue;
+    }
+    if (getVaultStatus(account) === 'active' && isVaultExpired(account)) {
       expired.push({ pubkey, account });
     }
   }
